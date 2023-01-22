@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import com.trodix.documentstorage.entity.Aspect;
 import com.trodix.documentstorage.entity.Namespace;
 import com.trodix.documentstorage.entity.Node;
+import com.trodix.documentstorage.entity.Property;
 import com.trodix.documentstorage.entity.QName;
 import com.trodix.documentstorage.model.NodeRepresentation;
 import com.trodix.documentstorage.repository.NodeRepository;
@@ -38,12 +39,23 @@ public class NodeService {
             aspects.add(aspect);
         });
 
+        final List<Property> properties = new ArrayList<>();
+
+        nodeRepresentation.getProperties().forEach((key, value) -> {
+            Property property = new Property();
+            property.setQname(stringToQName(key));
+            property.setJavaType(value.getClass().getCanonicalName());
+            property.setValue(value);
+
+            properties.add(property);
+        });
+
         final Node node = new Node();
         node.setBucket(nodeRepresentation.getBucket());
         node.setDirectoryPath(nodeRepresentation.getDirectoryPath());
         node.setUuid(StringUtils.isBlank(nodeRepresentation.getUuid()) ? UUID.randomUUID().toString() : nodeRepresentation.getUuid());
         node.setAspects(aspects);
-        node.setProperties(null);
+        node.setProperties(properties);
 
         return node;
     }
