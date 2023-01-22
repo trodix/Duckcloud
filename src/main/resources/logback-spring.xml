@@ -49,6 +49,8 @@
             <appender-ref ref="Console" />
         </logger> -->
 
+        <logger name="com.trodix.documentstorage" level="DEBUG" />
+
     </springProfile>
 
 </configuration>
