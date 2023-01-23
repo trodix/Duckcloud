@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,10 @@ import com.trodix.documentstorage.entity.Node;
 import com.trodix.documentstorage.entity.Property;
 import com.trodix.documentstorage.entity.QName;
 import com.trodix.documentstorage.model.NodeRepresentation;
+import com.trodix.documentstorage.repository.AspectRepository;
+import com.trodix.documentstorage.repository.NamespaceRepository;
 import com.trodix.documentstorage.repository.NodeRepository;
+import com.trodix.documentstorage.repository.QNameRepository;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,14 +31,30 @@ public class NodeService {
 
     private final NodeRepository nodeRepository;
 
+    private final NamespaceRepository namespaceRepository;
+
+    private final QNameRepository qnameRepository;
+
+    private final AspectRepository aspectRepository;
+
     public Node nodeRepresentationToNode(final NodeRepresentation nodeRepresentation) {
 
         final List<Aspect> aspects = new ArrayList<>();
 
         nodeRepresentation.getAspects().stream().forEach(aspectString -> {
 
-            final Aspect aspect = new Aspect();
-            aspect.setQname(stringToQName(aspectString));
+            QName qnameAspect = stringToQName(aspectString);
+
+            final Optional<Aspect> resultAspect = aspectRepository.findOneByQname(qnameAspect);
+
+            final Aspect aspect;
+
+            if (resultAspect.isEmpty()) {
+                aspect = new Aspect();
+                aspect.setQname(qnameAspect);
+            } else {
+                aspect = resultAspect.get();
+            }
 
             aspects.add(aspect);
         });
@@ -42,7 +62,7 @@ public class NodeService {
         final List<Property> properties = new ArrayList<>();
 
         nodeRepresentation.getProperties().forEach((key, value) -> {
-            Property property = new Property();
+            final Property property = new Property();
             property.setQname(stringToQName(key));
             property.setJavaType(value.getClass().getCanonicalName());
             property.setValue(value);
@@ -95,12 +115,33 @@ public class NodeService {
             throw new IllegalArgumentException("Invalid QName representation: " + qnameString);
         }
 
-        final Namespace namespace = new Namespace();
-        namespace.setName(parts[0]);
+        final Optional<Namespace> resultNamespace = namespaceRepository.findOneByName(parts[0]);
 
-        final QName qname = new QName();
-        qname.setNamespace(namespace);
-        qname.setName(parts[1]);
+        final Namespace namespace;
+
+        if (resultNamespace.isEmpty()) {
+            namespace = new Namespace();
+            namespace.setName(parts[0]);
+        } else {
+            namespace = resultNamespace.get();
+        }
+
+        Optional<QName> resultQname = Optional.empty();
+
+        if (namespace.getId() != null) {
+            resultQname = qnameRepository.findOneByNamespaceIdAndName(namespace.getId(), parts[1]);
+        }
+
+        QName qname;
+
+        if (resultQname.isEmpty()) {
+            qname = new QName();
+            qname.setNamespace(namespace);
+            qname.setName(parts[1]);
+            qname = qnameRepository.save(qname);
+        } else {
+            qname = resultQname.get();
+        }
 
         return qname;
     }
