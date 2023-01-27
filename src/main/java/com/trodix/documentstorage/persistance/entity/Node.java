@@ -1,4 +1,4 @@
-package com.trodix.documentstorage.entity;
+package com.trodix.documentstorage.persistance.entity;
 
 import java.util.List;
 import javax.persistence.CascadeType;

@@ -1,6 +1,6 @@
-package com.trodix.documentstorage.entity;
+package com.trodix.documentstorage.persistance.entity;
 
-import java.io.Serializable;
+
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -13,19 +13,16 @@ import lombok.Data;
 
 @Data
 @Entity
-@Table(name = "property")
-public class Property {
+@Table(name = "aspect")
+public class Aspect {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "qname_id", nullable = false, updatable = false)
     private QName qname;
-
-    private Serializable value;
-
-    private String javaType;
 
 }

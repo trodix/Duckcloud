@@ -1,8 +1,8 @@
-package com.trodix.documentstorage.repository;
+package com.trodix.documentstorage.persistance.repository;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import com.trodix.documentstorage.entity.Namespace;
+import com.trodix.documentstorage.persistance.entity.Namespace;
 
 public interface NamespaceRepository extends JpaRepository<Namespace, Long> {
 

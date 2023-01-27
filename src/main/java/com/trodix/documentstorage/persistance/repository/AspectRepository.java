@@ -1,9 +1,9 @@
-package com.trodix.documentstorage.repository;
+package com.trodix.documentstorage.persistance.repository;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import com.trodix.documentstorage.entity.Aspect;
-import com.trodix.documentstorage.entity.QName;
+import com.trodix.documentstorage.persistance.entity.Aspect;
+import com.trodix.documentstorage.persistance.entity.QName;
 
 public interface AspectRepository extends JpaRepository<Aspect, Long> {
 

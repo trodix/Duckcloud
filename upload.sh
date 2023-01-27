@@ -2,7 +2,7 @@
 
 main() {
 	GO=$SECONDS
-	START=0
+	START=1
 	END=$2
 	PATHFILE=$1
 
@@ -15,10 +15,12 @@ main() {
 		echo -e "\n======== $i ========\n"
 		curl --location --request POST 'http://localhost:8010/upload' \
 			--form "file=@$PATHFILE" \
-			--form 'directoryPath="/dir1"' \
-			--form 'aspects="app-doc:fruit, app-doc:fish"' \
-			--form 'properties[app-doc:fruitName]="banana"' \
-			--form 'properties[app-doc:fishName]="salmon"'
+			--form "directoryPath=/fruits" \
+			--form "aspects=app-doc:fruit, app-doc:fish" \
+			--form "properties[fruit:name]=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')" \
+			--form "properties[fruit:weight]=$(shuf -i 10-9999 -n 1)" \
+			--form "properties[fruit:harvest-date]=$(date -I -d "2020-01-01 +$(shuf -i 0-1100 -n 1) days")" \
+			--form "properties[fruit:reference]=$(shuf -i 1000000-9999999 -n 1)"
 	done
 	STOP=$SECONDS
 
