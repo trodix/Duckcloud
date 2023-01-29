@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import com.trodix.documentstorage.persistance.entity.Aspect;
+import com.trodix.documentstorage.persistance.entity.QName;
 import com.trodix.documentstorage.persistance.repository.AspectRepository;
 import lombok.AllArgsConstructor;
 
@@ -27,7 +28,7 @@ public class AspectDAO {
         final String query;
 
         if (aspect.getId() == null) {
-            Optional<Aspect> existingAspect = aspectRepository.findOneByQname(aspect.getQname());
+            final Optional<Aspect> existingAspect = findByQname(aspect.getQname());
             if (existingAspect.isPresent()) {
                 query = "UPDATE aspect SET qname_id = :qname_id WHERE id = :id";
                 params.addValue("id", existingAspect.get().getId());
@@ -46,6 +47,10 @@ public class AspectDAO {
         aspect.setId((Long) keyHolder.getKeys().get("id"));
 
         return aspect;
+    }
+
+    public Optional<Aspect> findByQname(final QName qname) {
+        return aspectRepository.findOneByQname(qname);
     }
 
 }

@@ -44,6 +44,7 @@ public class StorageController {
         createNodeData.setDirectoryPath(node.getDirectoryPath());
         createNodeData.setFileName(file.getOriginalFilename());
         createNodeData.setContentType(file.getContentType());
+        createNodeData.setType(node.getType());
         createNodeData.setAspects(node.getAspects());
         createNodeData.setProperties(node.getProperties());
         
@@ -54,6 +55,7 @@ public class StorageController {
         response.setDirectoryPath(result.getDirectoryPath());
         response.setUuid(result.getUuid());
         response.setFileName(result.getFileName());
+        response.setType(result.getType());
         response.setAspects(result.getAspects());
         response.setProperties(result.getProperties());
 

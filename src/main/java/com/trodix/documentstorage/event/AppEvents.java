@@ -5,11 +5,10 @@ import java.util.List;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import com.trodix.documentstorage.persistance.entity.PropertyType;
-import com.trodix.documentstorage.persistance.dao.ModelDAO;
+import com.trodix.documentstorage.model.ContentModel;
 import com.trodix.documentstorage.persistance.entity.Model;
-import com.trodix.documentstorage.persistance.repository.ModelRepository;
-import com.trodix.documentstorage.service.NodeService;
+import com.trodix.documentstorage.persistance.entity.PropertyType;
+import com.trodix.documentstorage.service.ModelService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -18,11 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class AppEvents {
 
-    private final NodeService nodeService;
-
-    private final ModelRepository modelRepository;
-
-    private final ModelDAO modelDAO;
+    private final ModelService modelService;
 
     @EventListener(ApplicationReadyEvent.class)
     public void bootstrap() {
@@ -33,7 +28,7 @@ public class AppEvents {
 
     private void loadData() {
 
-        if (modelRepository.count() > 0) {
+        if (modelService.count() > 0) {
             log.info("Bootstrap data already loaded");
             return;
         }
@@ -42,31 +37,28 @@ public class AppEvents {
 
         final List<Model> modelList = new ArrayList<>();
 
-        final Model fruitHeightPropertyModel = new Model();
-        fruitHeightPropertyModel.setQname(nodeService.stringToQName("fruit:weight"));
-        fruitHeightPropertyModel.setType(PropertyType.DOUBLE);
+        final Model typeContent = modelService.buildModel(ContentModel.TYPE_CONTENT);
+        modelList.add(typeContent);
 
+        final Model fruitAspect = modelService.buildModel("app-doc:fruit");
+        modelList.add(fruitAspect);
+
+        final Model fishAspect = modelService.buildModel("app-doc:fish");
+        modelList.add(fishAspect);
+
+        final Model fruitHeightPropertyModel = modelService.buildModel("fruit:weight", PropertyType.DOUBLE);
         modelList.add(fruitHeightPropertyModel);
 
-        final Model fruitNamePropertyModel = new Model();
-        fruitNamePropertyModel.setQname(nodeService.stringToQName("fruit:name"));
-        fruitNamePropertyModel.setType(PropertyType.STRING);
-
+        final Model fruitNamePropertyModel = modelService.buildModel("fruit:name", PropertyType.STRING);
         modelList.add(fruitNamePropertyModel);
 
-        final Model fruitHavestDatePropertyModel = new Model();
-        fruitHavestDatePropertyModel.setQname(nodeService.stringToQName("fruit:harvest-date"));
-        fruitHavestDatePropertyModel.setType(PropertyType.DATE);
-
+        final Model fruitHavestDatePropertyModel = modelService.buildModel("fruit:harvest-date", PropertyType.DATE);
         modelList.add(fruitHavestDatePropertyModel);
 
-        final Model fruitReferencePropertyModel = new Model();
-        fruitReferencePropertyModel.setQname(nodeService.stringToQName("fruit:reference"));
-        fruitReferencePropertyModel.setType(PropertyType.LONG);
-
+        final Model fruitReferencePropertyModel = modelService.buildModel("fruit:reference", PropertyType.LONG);
         modelList.add(fruitReferencePropertyModel);
 
-        modelList.forEach(modelDAO::save);
+        modelList.forEach(modelService::save);
     }
 
 }

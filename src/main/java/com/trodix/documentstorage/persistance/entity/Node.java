@@ -10,6 +10,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import lombok.Data;
 
@@ -28,6 +29,9 @@ public class Node {
     private String bucket;
 
     private String directoryPath;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    private Type type;
 
     @ManyToMany(cascade = CascadeType.ALL)
     @JoinTable(name = "node_aspect")

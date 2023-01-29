@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.trodix.documentstorage.persistance.entity.Aspect;
 import com.trodix.documentstorage.persistance.entity.Node;
 import com.trodix.documentstorage.persistance.entity.Property;
+import com.trodix.documentstorage.persistance.entity.Type;
 import lombok.AllArgsConstructor;
 
 @Repository
@@ -20,6 +21,8 @@ public class NodeDAO {
 
     private final NamedParameterJdbcTemplate tpl;
 
+    private final TypeDAO typeDAO;
+
     private final AspectDAO aspectDAO;
 
     private final PropertyDAO propertyDAO;
@@ -28,12 +31,19 @@ public class NodeDAO {
 
         final KeyHolder keyHolder = new GeneratedKeyHolder();
 
+        // save type relation
+        if (node.getType().getId() == null) {
+            final Type type = typeDAO.save(node.getType());
+            node.getType().setId(type.getId());
+        }
+
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("bucket", node.getBucket());
         params.addValue("directory_path", node.getDirectoryPath());
         params.addValue("uuid", node.getUuid());
+        params.addValue("type_id", node.getType().getId());
 
-        final String query = "INSERT INTO node (bucket, directory_path, uuid) VALUES (:bucket, :directory_path, :uuid)";
+        final String query = "INSERT INTO node (bucket, directory_path, uuid, type_id) VALUES (:bucket, :directory_path, :uuid, :type_id)";
         tpl.update(query, params, keyHolder);
 
         node.setDbId((Long) keyHolder.getKeys().get("id"));

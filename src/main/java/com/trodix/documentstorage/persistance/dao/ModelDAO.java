@@ -1,6 +1,5 @@
 package com.trodix.documentstorage.persistance.dao;
 
-import java.sql.SQLType;
 import java.sql.Types;
 import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -11,8 +10,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import com.trodix.documentstorage.persistance.entity.Model;
 import com.trodix.documentstorage.persistance.entity.QName;
+import com.trodix.documentstorage.persistance.mapper.ModelRowMapper;
 import com.trodix.documentstorage.persistance.repository.ModelRepository;
-import com.trodix.documentstorage.persistance.repository.QNameRepository;
+import com.trodix.documentstorage.persistance.utils.DaoUtils;
 import lombok.AllArgsConstructor;
 
 @Repository
@@ -24,28 +24,40 @@ public class ModelDAO {
 
     private final ModelRepository modelRepository;
 
-    private final QNameRepository qnameRepository;
+    private final QNameDAO qnameDAO;
 
     public Model save(final Model model) {
 
         if (model.getQname().getId() == null) {
-            QName existionQName = qnameRepository.findOneByName(model.getQname().getName()).orElseThrow();
-            model.setQname(existionQName);
+            final Optional<QName> existionQName = qnameDAO.findByName(model.getQname().getName());
+            if (existionQName.isPresent()) {
+                model.setQname(existionQName.get());
+            } else {
+                qnameDAO.save(model.getQname());
+            }
         }
 
         final KeyHolder keyHolder = new GeneratedKeyHolder();
         final String query;
-        Optional<Model> existingModel = findByQname(model.getQname());
-
-        if (existingModel.isEmpty()) {
-            query = "INSERT INTO model (qname_id, type) VALUES (:qname_id, :type)";
-        } else {
-            query = "UPDATE model SET type = :type WHERE qname_id = :qname_id";
-        }
+        final Optional<Model> existingModel = findByQname(model.getQname());
 
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("qname_id", model.getQname().getId());
-        params.addValue("type", model.getType().ordinal(), Types.INTEGER);
+
+        if (model.getType() != null) {
+            params.addValue("type", model.getType().ordinal(), Types.INTEGER);
+            if (existingModel.isEmpty()) {
+                query = "INSERT INTO model (qname_id, type) VALUES (:qname_id, :type)";
+            } else {
+                query = "UPDATE model SET type = :type WHERE qname_id = :qname_id";
+            }
+        } else {
+            if (existingModel.isEmpty()) {
+                query = "INSERT INTO model (qname_id) VALUES (:qname_id)";
+            } else {
+                throw new IllegalArgumentException("Nothing to update for model " + model);
+            }
+        }
 
         tpl.update(query, params, keyHolder);
 
@@ -55,7 +67,22 @@ public class ModelDAO {
     }
 
     public Optional<Model> findByQname(final QName qname) {
-        return modelRepository.findByQname(qname);
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("name", qname.getName());
+
+        final String query = """
+                SELECT m.id as m_id, m.type as m_type, q.id as q_id, q.name as q_name, n.id as n_id, n.name as n_name
+                FROM qname q
+                INNER JOIN model m ON m.qname_id = q.id
+                INNER JOIN namespace n ON q.namespace_id = n.id
+                WHERE q.name = :name
+                """;
+
+        return DaoUtils.findOne(tpl.query(query, params, new ModelRowMapper()));
+    }
+
+    public long count() {
+        return modelRepository.count();
     }
 
 }

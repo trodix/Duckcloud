@@ -11,6 +11,7 @@ import com.trodix.documentstorage.persistance.entity.Namespace;
 import com.trodix.documentstorage.persistance.entity.QName;
 import com.trodix.documentstorage.persistance.mapper.QNameRowMapper;
 import com.trodix.documentstorage.persistance.repository.QNameRepository;
+import com.trodix.documentstorage.persistance.utils.DaoUtils;
 import lombok.AllArgsConstructor;
 
 @Repository
@@ -27,7 +28,6 @@ public class QNameDAO {
     public QName save(final QName qname) {
 
         if (qname.getNamespace().getId() == null) {
-
             final Optional<Namespace> existingNameSpace = namespaceDAO.findByName(qname.getNamespace().getName());
             if (existingNameSpace.isPresent()) {
                 qname.setNamespace(existingNameSpace.get());
@@ -69,9 +69,9 @@ public class QNameDAO {
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("name", name);
 
-        final String query = "SELECT q.id as q_id, q.name as q_name FROM qname WHERE q.name = ':name'";
+        final String query = "SELECT q.id as q_id, q.name as q_name FROM qname q WHERE q.name = :name";
 
-        return Optional.ofNullable(tpl.queryForObject(query, params, new QNameRowMapper()));
+        return DaoUtils.findOne(tpl.query(query, params, new QNameRowMapper()));
     }
 
 }

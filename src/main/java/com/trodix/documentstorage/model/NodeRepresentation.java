@@ -17,6 +17,8 @@ public class NodeRepresentation {
     private String fileName;
 
     private String contentType;
+    
+    private String type;
 
     private List<String> aspects;
 

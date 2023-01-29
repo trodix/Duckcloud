@@ -1,5 +1,6 @@
 package com.trodix.documentstorage.persistance.dao;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -48,9 +49,11 @@ public class NamespaceDAO {
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("name", name);
 
-        final String query = "SELECT n.id as n_id, n.name as n_name FROM namespace n WHERE n.name = ':name'";
+        final String query = "SELECT n.id as n_id, n.name as n_name FROM namespace n WHERE n.name = :name";
 
-        return DaoUtils.findOne(tpl.query(query, params, new NamespaceRowMapper()));
+        final List<Namespace> result = tpl.query(query, params, new NamespaceRowMapper());
+
+        return DaoUtils.findOne(result);
     }
 
 }

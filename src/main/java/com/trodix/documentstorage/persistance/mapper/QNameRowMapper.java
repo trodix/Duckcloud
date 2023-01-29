@@ -9,14 +9,13 @@ public class QNameRowMapper implements RowMapper<QName> {
 
     @Override
     public QName mapRow(final ResultSet rs, final int rowNum) throws SQLException {
-        final QName entity = new QName();
+        final QName qname = new QName();
 
-        while (rs.next()) {
-            entity.setId(rs.getLong("q_id"));
-            entity.setName(rs.getString("q_name"));
-        }
-
-        return entity;
+        qname.setId(rs.getLong("q_id"));
+        qname.setName(rs.getString("q_name"));
+        qname.setNamespace(new NamespaceRowMapper().mapRow(rs, rowNum));
+    
+        return qname;
     }
 
 }

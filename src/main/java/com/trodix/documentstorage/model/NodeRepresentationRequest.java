@@ -12,6 +12,8 @@ public class NodeRepresentationRequest {
 
     private String directoryPath;
 
+    private String type;
+
     private List<String> aspects;
 
     private Map<String, Serializable> properties;
