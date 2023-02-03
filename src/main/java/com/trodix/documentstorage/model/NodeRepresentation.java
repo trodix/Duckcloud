@@ -14,8 +14,6 @@ public class NodeRepresentation {
 
     private String directoryPath;
 
-    private String fileName;
-
     private String contentType;
     
     private String type;

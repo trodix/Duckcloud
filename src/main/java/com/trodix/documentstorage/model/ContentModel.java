@@ -4,6 +4,7 @@ public class ContentModel {
 
     public static final String NAMESPACE = "cm";
     public static final String TYPE_CONTENT = getQNameString("content");
+    public static final String PROP_NAME = getQNameString("name");
 
     private ContentModel() {
         // no-op

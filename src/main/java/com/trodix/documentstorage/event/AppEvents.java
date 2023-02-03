@@ -40,6 +40,9 @@ public class AppEvents {
         final Model typeContent = modelService.buildModel(ContentModel.TYPE_CONTENT);
         modelList.add(typeContent);
 
+        final Model propName = modelService.buildModel(ContentModel.PROP_NAME, PropertyType.STRING) ;
+        modelList.add(propName);
+
         final Model fruitAspect = modelService.buildModel("app-doc:fruit");
         modelList.add(fruitAspect);
 

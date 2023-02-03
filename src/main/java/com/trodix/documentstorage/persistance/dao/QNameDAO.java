@@ -65,11 +65,16 @@ public class QNameDAO {
         return qname;
     }
 
-    public Optional<QName> findByName(final String name) {
+    public Optional<QName> findByNamespaceAndQname(final Namespace namespace, final QName qname) {
         final MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("name", name);
+        params.addValue("namespace", namespace.getName());
+        params.addValue("qname", qname.getName());
 
-        final String query = "SELECT q.id as q_id, q.name as q_name FROM qname q WHERE q.name = :name";
+        final String query = """
+            SELECT q.id as q_id, q.name as q_name, n.id as n_id, n.name as n_name FROM qname q 
+            INNER JOIN namespace n ON n.id = q.namespace_id
+            WHERE n.name = :namespace AND q.name = :qname
+            """;
 
         return DaoUtils.findOne(tpl.query(query, params, new QNameRowMapper()));
     }

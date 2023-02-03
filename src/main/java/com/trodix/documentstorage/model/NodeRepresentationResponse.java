@@ -10,8 +10,6 @@ public class NodeRepresentationResponse {
 
     private String uuid;
 
-    private String fileName;
-
     private String bucket;
 
     private String directoryPath;

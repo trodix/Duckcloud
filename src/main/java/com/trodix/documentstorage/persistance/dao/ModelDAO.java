@@ -29,7 +29,7 @@ public class ModelDAO {
     public Model save(final Model model) {
 
         if (model.getQname().getId() == null) {
-            final Optional<QName> existionQName = qnameDAO.findByName(model.getQname().getName());
+            final Optional<QName> existionQName = qnameDAO.findByNamespaceAndQname(model.getQname().getNamespace(), model.getQname());
             if (existionQName.isPresent()) {
                 model.setQname(existionQName.get());
             } else {
@@ -68,14 +68,15 @@ public class ModelDAO {
 
     public Optional<Model> findByQname(final QName qname) {
         final MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("name", qname.getName());
+        params.addValue("namespace", qname.getNamespace().getName());
+        params.addValue("qname", qname.getName());
 
         final String query = """
                 SELECT m.id as m_id, m.type as m_type, q.id as q_id, q.name as q_name, n.id as n_id, n.name as n_name
                 FROM qname q
                 INNER JOIN model m ON m.qname_id = q.id
                 INNER JOIN namespace n ON q.namespace_id = n.id
-                WHERE q.name = :name
+                WHERE n.name = :namespace AND q.name = :qname
                 """;
 
         return DaoUtils.findOne(tpl.query(query, params, new ModelRowMapper()));

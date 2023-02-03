@@ -8,14 +8,17 @@ import com.trodix.documentstorage.persistance.entity.Namespace;
 import com.trodix.documentstorage.persistance.entity.PropertyType;
 import com.trodix.documentstorage.persistance.entity.QName;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class ModelService {
 
     private final ModelDAO modelDAO;
 
     public Model save(final Model model) {
+        log.info("Registering model: " + model);
         return modelDAO.save(model);
     }
 
