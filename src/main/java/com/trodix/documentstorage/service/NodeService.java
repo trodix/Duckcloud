@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.ContentModel;
 import com.trodix.documentstorage.model.NodeRepresentation;
+import com.trodix.documentstorage.model.NodeTreeElement;
 import com.trodix.documentstorage.persistance.dao.NodeDAO;
 import com.trodix.documentstorage.persistance.entity.Aspect;
 import com.trodix.documentstorage.persistance.entity.Node;
@@ -106,7 +107,8 @@ public class NodeService {
         node.setBucket(StorageService.ROOT_BUCKET);
 
         try {
-            final Property originalFileNameProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_NAME), nodeRep.getProperties().get(ContentModel.PROP_NAME));
+            final Property originalFileNameProperty =
+                    propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_NAME), nodeRep.getProperties().get(ContentModel.PROP_NAME));
 
             node.getProperties().add(originalFileNameProperty);
         } catch (final ParseException e) {
@@ -147,5 +149,16 @@ public class NodeService {
         throw new IllegalArgumentException("Node does not contain the property: " + ContentModel.PROP_NAME + ". Actual properties: " + node.getProperties());
     }
 
+    public List<NodeRepresentation> findByPath(final String path) {
+        return this.nodeDAO.findByPath(path).stream().map(this::nodeToNodeRepresentation).toList();
+    }
+
+    public NodeRepresentation findByNodeId(final String nodeId) {
+        Node result = this.nodeDAO.findByUuId(nodeId);
+        if (result != null) {
+            return nodeToNodeRepresentation(result);
+        }
+        return null;
+    }
 
 }

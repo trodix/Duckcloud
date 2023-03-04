@@ -12,12 +12,15 @@ import com.trodix.documentstorage.persistance.entity.Aspect;
 import com.trodix.documentstorage.persistance.entity.Node;
 import com.trodix.documentstorage.persistance.entity.Property;
 import com.trodix.documentstorage.persistance.entity.Type;
+import com.trodix.documentstorage.persistance.repository.NodeRepository;
 import lombok.AllArgsConstructor;
 
 @Repository
 @Transactional
 @AllArgsConstructor
 public class NodeDAO {
+
+    private final NodeRepository nodeRepository;
 
     private final NamedParameterJdbcTemplate tpl;
 
@@ -52,6 +55,14 @@ public class NodeDAO {
         node = persistNodeProperties(node);
 
         return node;
+    }
+
+    public List<Node> findByPath(final String path) {
+        return nodeRepository.findByDirectoryPath(path);
+    }
+
+    public Node findByUuId(final String uuid) {
+        return nodeRepository.findByUuid(uuid).orElse(null);
     }
 
     protected Node persistNodeAspects(final Node node) {
