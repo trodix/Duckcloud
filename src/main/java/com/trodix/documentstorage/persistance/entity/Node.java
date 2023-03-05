@@ -12,6 +12,8 @@ import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
+
 import lombok.Data;
 
 @Data
@@ -24,11 +26,18 @@ public class Node {
     @Column(name = "id")
     private Long dbId;
 
+    @NotNull
     private String uuid;
 
+    @NotNull
     private String bucket;
 
+    @NotNull
     private String directoryPath;
+
+    @NotNull
+    @Column(columnDefinition = "integer default 1")
+    private int versions;
 
     @OneToOne(cascade = CascadeType.ALL)
     private Type type;

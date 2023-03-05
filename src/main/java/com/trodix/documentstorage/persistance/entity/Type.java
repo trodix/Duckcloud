@@ -17,7 +17,6 @@ public class Type {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "qname_id", nullable = false, updatable = false)
     private QName qname;

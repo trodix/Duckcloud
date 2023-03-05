@@ -30,6 +30,8 @@ public class NodeDAO {
 
     private final PropertyDAO propertyDAO;
 
+    private final StoredFileDAO storedFileDAO;
+
     public Node save(Node node) {
 
         final KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -45,11 +47,25 @@ public class NodeDAO {
         params.addValue("directory_path", node.getDirectoryPath());
         params.addValue("uuid", node.getUuid());
         params.addValue("type_id", node.getType().getId());
+        params.addValue("versions", node.getVersions()); // default to 0 (before the file is uploaded
 
-        final String query = "INSERT INTO node (bucket, directory_path, uuid, type_id) VALUES (:bucket, :directory_path, :uuid, :type_id)";
-        tpl.update(query, params, keyHolder);
+        if (node.getDbId() == null) {
+            final String query = "INSERT INTO node (bucket, directory_path, uuid, type_id, versions) VALUES (:bucket, :directory_path, :uuid, :type_id, :versions)";
+            tpl.update(query, params, keyHolder);
 
-        node.setDbId((Long) keyHolder.getKeys().get("id"));
+            node.setDbId((Long) keyHolder.getKeys().get("id"));
+        } else {
+            params.addValue("id", node.getDbId());
+            final String query = "UPDATE node SET bucket = :bucket, directory_path = :directory_path, uuid = :uuid, type_id = :type_id, versions = :versions WHERE id = :id";
+            tpl.update(query, params);
+        }
+
+        int maxVersion = storedFileDAO.findLatestVersion(node.getDbId());
+
+        if (maxVersion > node.getVersions()) {
+            node.setVersions(maxVersion);
+            save(node);
+        }
 
         node = persistNodeAspects(node);
         node = persistNodeProperties(node);

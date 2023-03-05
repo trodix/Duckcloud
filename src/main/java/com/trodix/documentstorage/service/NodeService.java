@@ -1,26 +1,22 @@
 package com.trodix.documentstorage.service;
 
-import java.io.Serializable;
-import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
 import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.ContentModel;
+import com.trodix.documentstorage.model.FileStoreMetadata;
 import com.trodix.documentstorage.model.NodeRepresentation;
-import com.trodix.documentstorage.model.NodeTreeElement;
 import com.trodix.documentstorage.persistance.dao.NodeDAO;
-import com.trodix.documentstorage.persistance.entity.Aspect;
-import com.trodix.documentstorage.persistance.entity.Node;
-import com.trodix.documentstorage.persistance.entity.NodeIndex;
-import com.trodix.documentstorage.persistance.entity.Property;
-import com.trodix.documentstorage.persistance.entity.Type;
+import com.trodix.documentstorage.persistance.dao.StoredFileDAO;
+import com.trodix.documentstorage.persistance.entity.*;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.Serializable;
+import java.text.ParseException;
+import java.util.*;
 
 @Service
 @AllArgsConstructor
@@ -43,12 +39,14 @@ public class NodeService {
 
     private final NodeMapper nodeMapper;
 
+    private final StoredFileDAO storedFileDAO;
+
     public Node nodeRepresentationToNode(final NodeRepresentation nodeRepresentation) throws IllegalArgumentException {
 
         final Type type = typeService.stringToType(nodeRepresentation.getType());
 
         final List<Aspect> aspects = new ArrayList<>();
-        nodeRepresentation.getAspects().stream().forEach(aspectString -> {
+        nodeRepresentation.getAspects().forEach(aspectString -> {
             final Aspect aspect = aspectService.stringToAspect(aspectString);
             aspects.add(aspect);
         });
@@ -80,10 +78,10 @@ public class NodeService {
     public NodeRepresentation nodeToNodeRepresentation(final Node node) {
 
         final List<String> aspects = new ArrayList<>();
-        node.getAspects().stream().forEach(aspect -> aspects.add(aspectService.aspectToString(aspect)));
+        node.getAspects().forEach(aspect -> aspects.add(aspectService.aspectToString(aspect)));
 
         final Map<String, Serializable> properties = new HashMap<>();
-        node.getProperties().stream().forEach(property -> {
+        node.getProperties().forEach(property -> {
             final String propertyName = qnameService.qnameToString(property.getQname());
             final Serializable propertyValue = propertyService.getPropertyValue(property);
 
@@ -101,6 +99,7 @@ public class NodeService {
         return nodeRepresentation;
     }
 
+    @Transactional
     public NodeRepresentation persistNode(final NodeRepresentation nodeRep, final byte[] file) {
         final Node node = nodeRepresentationToNode(nodeRep);
         // TODO support multiple buckets
@@ -119,15 +118,47 @@ public class NodeService {
         nodeRep.setUuid(node.getUuid());
         nodeRep.setBucket(node.getBucket());
         nodeRep.setType(typeService.typeToString(node.getType()));
+        nodeRep.setVersions(node.getVersions());
 
-        storageService.uploadFile(nodeRep, file);
-
-        log.debug("File uploaded: {}", nodeRep);
+        createContent(nodeRep, file);
 
         final NodeIndex nodeIndex = nodeMapper.nodeToNodeIndex(node);
         nodeIndexerService.createNodeIndex(nodeIndex);
 
         return nodeRep;
+    }
+
+    public StoredFile createContent(final NodeRepresentation nodeRep, final byte[] file) throws IllegalArgumentException {
+
+        final Node node = nodeDAO.findByUuId(nodeRep.getUuid());
+        if (node == null) {
+            throw new IllegalArgumentException("Node with uuid " + nodeRep.getUuid() + " was not found");
+        }
+
+        // Validate the media type
+        MediaType.valueOf(nodeRep.getContentType());
+
+        FileStoreMetadata fileStoreMetadata = new FileStoreMetadata();
+        fileStoreMetadata.setContentType(nodeRep.getContentType());
+        fileStoreMetadata.setUuid(UUID.randomUUID().toString());
+        fileStoreMetadata.setBucket(node.getBucket());
+        fileStoreMetadata.setDirectoryPath(node.getDirectoryPath());
+
+        storageService.uploadFile(fileStoreMetadata, file);
+        log.debug("File uploaded: {}", fileStoreMetadata);
+
+        StoredFile storedFile = new StoredFile();
+        storedFile.setNode(node);
+        storedFile.setUuid(fileStoreMetadata.getUuid());
+        storedFile.setVersion(node.getVersions() + 1);
+
+        storedFile = storedFileDAO.save(storedFile);
+        node.setVersions(storedFile.getVersion());
+        nodeDAO.save(node);
+
+        log.debug("Version {} created for file uuid {} related to node uuid {}", storedFile.getVersion(), storedFile.getUuid(), node.getUuid());
+
+        return storedFile;
     }
 
     public String getOriginalFileName(final Node node) {

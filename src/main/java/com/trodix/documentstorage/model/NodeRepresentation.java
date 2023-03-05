@@ -17,6 +17,8 @@ public class NodeRepresentation {
 
     private String contentType;
 
+    private int versions;
+
     private String type;
 
     private List<String> aspects;
@@ -27,26 +29,5 @@ public class NodeRepresentation {
     public String toString() {
         return directoryPath;
     }
-
-
-    @Override
-    public boolean equals(final Object o) {
-        if (o == this)
-            return true;
-        if (!(o instanceof NodeRepresentation)) {
-            return false;
-        }
-        final NodeRepresentation nodeRepresentation = (NodeRepresentation) o;
-        return Objects.equals(uuid, nodeRepresentation.uuid) && Objects.equals(bucket, nodeRepresentation.bucket)
-                && Objects.equals(directoryPath, nodeRepresentation.directoryPath) && Objects.equals(contentType, nodeRepresentation.contentType)
-                && Objects.equals(type, nodeRepresentation.type) && Objects.equals(aspects, nodeRepresentation.aspects)
-                && Objects.equals(properties, nodeRepresentation.properties);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(uuid, bucket, directoryPath, contentType, type, aspects, properties);
-    }
-
 
 }

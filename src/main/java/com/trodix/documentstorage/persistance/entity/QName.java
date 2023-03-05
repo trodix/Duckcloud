@@ -8,6 +8,8 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.validation.constraints.NotNull;
+
 import lombok.Data;
 
 @Data
@@ -20,8 +22,10 @@ public class QName {
     private Long id;
 
     @ManyToOne(cascade = CascadeType.ALL)
+    @NotNull
     private Namespace namespace;
 
+    @NotNull
     private String name;
 
 }

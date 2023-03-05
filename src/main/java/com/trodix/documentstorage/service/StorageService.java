@@ -1,23 +1,18 @@
 package com.trodix.documentstorage.service;
 
+import com.trodix.documentstorage.model.FileStoreMetadata;
+import io.minio.*;
+import io.minio.messages.Bucket;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.compress.utils.IOUtils;
+import org.springframework.stereotype.Service;
+
+import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.UUID;
-import javax.annotation.PostConstruct;
-import org.apache.commons.compress.utils.IOUtils;
-import org.springframework.stereotype.Service;
-import com.trodix.documentstorage.model.NodeRepresentation;
-import io.minio.BucketExistsArgs;
-import io.minio.GetObjectArgs;
-import io.minio.MakeBucketArgs;
-import io.minio.MinioClient;
-import io.minio.ObjectWriteResponse;
-import io.minio.PutObjectArgs;
-import io.minio.messages.Bucket;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 @Service
 @AllArgsConstructor
@@ -46,12 +41,12 @@ public class StorageService {
         }
     }
 
-    public ObjectWriteResponse uploadFile(final NodeRepresentation node, final byte[] content) {
+    public ObjectWriteResponse uploadFile(final FileStoreMetadata fileStoreMetadata, final byte[] content) {
         try {
             final PutObjectArgs obj = PutObjectArgs.builder()
                     .bucket(ROOT_BUCKET)
-                    .object(Path.of(node.getDirectoryPath(), node.getUuid()).toString())
-                    .contentType(node.getContentType())
+                    .object(Path.of(fileStoreMetadata.getDirectoryPath(), fileStoreMetadata.getUuid()).toString())
+                    .contentType(fileStoreMetadata.getContentType())
                     .stream(new ByteArrayInputStream(content), content.length, -1)
                     .build();
             final ObjectWriteResponse response = minioClient.putObject(obj);
