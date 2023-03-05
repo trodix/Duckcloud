@@ -6,6 +6,7 @@
 - Document aspects
 - Document properties
 - Search in type, aspects, properties
+- File versioning
 - File content indexation (TODO)
 
 ## DEV
