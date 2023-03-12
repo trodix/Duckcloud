@@ -4,7 +4,7 @@ import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.*;
 import com.trodix.documentstorage.persistance.entity.Node;
 import com.trodix.documentstorage.persistance.entity.NodeIndex;
-import com.trodix.documentstorage.service.FileSearchService;
+import com.trodix.documentstorage.service.NodeIndexerService;
 import com.trodix.documentstorage.service.NodeService;
 import com.trodix.documentstorage.service.SearchService;
 import com.trodix.documentstorage.service.TreeService;
@@ -30,30 +30,17 @@ public class SearchController {
 
     private final NodeMapper nodeMapper;
 
-    private final FileSearchService fileSearchService;
+    private final NodeIndexerService nodeIndexerService;
+
 
     @Operation(summary = "Search indexed nodes by metadata (elasticsearch)")
-    @GetMapping("/search")
+    @PostMapping("/search")
     public SearchResult<NodeTreeElement> searchNodes(@RequestBody final SearchQuery searchRequest, @RequestParam(defaultValue = "0") final Integer limit) {
         final List<NodeIndex> result = searchService.findNodeByFieldContaining(searchRequest.getTerm(), searchRequest.getValue(), limit);
-        final List<Node> nodeResult = result.stream().map(nodeMapper::nodeIndexToNode).toList();
+        final List<Node> nodeResult = result.stream().map(nodeIndexerService::nodeIndexToNode).toList();
         final List<NodeRepresentation> nodeRepresentationResult = nodeResult.stream().map(nodeService::nodeToNodeRepresentation).toList();
         final List<NodeTreeElement> tree = directoryService.buildTree(nodeRepresentationResult, false);
         return new SearchResult<>(tree.size(), tree);
-    }
-
-    @Operation(summary = "Search in indexed file content (elasticsearch)")
-    @PostMapping("/search-content/{nodeId}")
-    public boolean searchTermByContent(@PathVariable final String nodeId, @RequestBody final SearchQuery searchRequest,
-                                                     @RequestParam(defaultValue = "0") final Integer limit) {
-        if (!searchRequest.getTerm().equals("cm:content")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File content search must have 'cm:content' as searchTerm");
-        }
-
-        // TODO search in file content
-        boolean foundTermInFile = fileSearchService.searchInFile(nodeId, searchRequest.getValue());
-
-        return foundTermInFile;
     }
 
     @Operation(summary = "Find nodes located at the path")

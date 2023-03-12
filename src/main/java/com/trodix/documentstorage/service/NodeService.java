@@ -1,6 +1,6 @@
 package com.trodix.documentstorage.service;
 
-import com.trodix.documentstorage.mapper.NodeMapper;
+import com.trodix.documentstorage.exceptions.ParsingContentException;
 import com.trodix.documentstorage.model.ContentModel;
 import com.trodix.documentstorage.model.FileStoreMetadata;
 import com.trodix.documentstorage.model.NodeRepresentation;
@@ -35,11 +35,9 @@ public class NodeService {
 
     private final PropertyService propertyService;
 
-    private final NodeIndexerService nodeIndexerService;
-
-    private final NodeMapper nodeMapper;
-
     private final StoredFileDAO storedFileDAO;
+
+    private final FileSearchService fileSearchService;
 
     public Node nodeRepresentationToNode(final NodeRepresentation nodeRepresentation) throws IllegalArgumentException {
 
@@ -122,9 +120,6 @@ public class NodeService {
 
         createContent(nodeRep, file);
 
-        final NodeIndex nodeIndex = nodeMapper.nodeToNodeIndex(node);
-        nodeIndexerService.createNodeIndex(nodeIndex);
-
         return nodeRep;
     }
 
@@ -201,6 +196,63 @@ public class NodeService {
         String fileUuid = this.storedFileDAO.findStoredFile(nodeId, version);
 
         return fileUuid;
+    }
+
+    public boolean searchInFile(String nodeUuid, Serializable value) {
+
+        log.debug("Searching for the term '{}' in {}", value, nodeUuid);
+
+        NodeRepresentation node = findByNodeId(nodeUuid);
+        String fileUuid = findFileContentUuid(nodeUuid);
+        byte[] content = storageService.getFile(node.getDirectoryPath(), fileUuid);
+
+        if (content == null) {
+            throw new IllegalStateException("File not found for nodeId " + nodeUuid);
+        }
+
+        log.debug("file content found: byte size: {}", content.length);
+        String fileContent = fileSearchService.extractFileContent(content);
+
+        return fileContent.toLowerCase().contains(value.toString().toLowerCase());
+    }
+
+    public String extractFileContent(Node node) throws ParsingContentException {
+        String fileUuid = findFileContentUuid(node.getUuid());
+        byte[] file = storageService.getFile(node.getDirectoryPath(), fileUuid);
+
+        return fileSearchService.extractFileContent(file);
+    }
+
+    public String extractFileContent(NodeRepresentation nodeRepresentation) throws ParsingContentException {
+        String fileUuid = findFileContentUuid(nodeRepresentation.getUuid());
+        byte[] file = storageService.getFile(nodeRepresentation.getDirectoryPath(), fileUuid);
+
+        return fileSearchService.extractFileContent(file);
+    }
+
+    public NodeIndex nodeToNodeIndex(final Node node) {
+        final NodeIndex nodeIndex = new NodeIndex();
+
+        nodeIndex.setDbId(node.getDbId());
+        nodeIndex.setUuid(node.getUuid());
+        nodeIndex.setDirectoryPath(node.getDirectoryPath());
+        nodeIndex.setBucket(node.getBucket());
+        nodeIndex.setType(typeService.typeToString(node.getType()));
+        nodeIndex.setAspects(node.getAspects().stream().map(aspectService::aspectToString).toList());
+
+        try {
+            nodeIndex.setFilecontent(extractFileContent(node));
+        } catch (ParsingContentException e) {
+            log.error("Error while parsing file content. File content will not be indexed", e);
+        }
+
+        final Map<String, Serializable> properties = new HashMap<>();
+
+        node.getProperties().forEach(p -> properties.put(qnameService.qnameToString(p.getQname()), propertyService.getPropertyValue(p)));
+
+        nodeIndex.setProperties(properties);
+
+        return nodeIndex;
     }
 
 }

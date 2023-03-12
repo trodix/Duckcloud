@@ -5,6 +5,7 @@ import com.trodix.documentstorage.model.NodeRepresentation;
 import com.trodix.documentstorage.model.NodeRepresentationRequest;
 import com.trodix.documentstorage.model.NodeRepresentationResponse;
 import com.trodix.documentstorage.persistance.entity.StoredFile;
+import com.trodix.documentstorage.service.NodeManager;
 import com.trodix.documentstorage.service.NodeService;
 import com.trodix.documentstorage.service.StorageService;
 import io.minio.messages.Bucket;
@@ -31,6 +32,8 @@ public class StorageController {
 
     private final NodeService nodeService;
 
+    private final NodeManager nodeManager;
+
     private final NodeMapper nodeMapper;
     
     @Operation(summary = "Get the list of available buckets where at least one file is stored")
@@ -45,7 +48,7 @@ public class StorageController {
             throws IOException {
 
         final NodeRepresentation createNodeData = nodeMapper.nodeRepresentationRequestToNodeRepresentation(node, file);
-        final NodeRepresentation result = nodeService.persistNode(createNodeData, file.getBytes());
+        final NodeRepresentation result = nodeManager.persistNode(createNodeData, file.getBytes());
 
         return nodeMapper.nodeRepresentationToNodeResponse(result);
     }
@@ -62,7 +65,7 @@ public class StorageController {
         }
 
         nodeRepresentation.setContentType(file.getContentType());
-        final StoredFile result = nodeService.createContent(nodeRepresentation, file.getBytes());
+        final StoredFile result = nodeManager.createContent(nodeRepresentation, file.getBytes());
         nodeRepresentation.setVersions(result.getVersion());
 
         return nodeMapper.nodeRepresentationToNodeResponse(nodeRepresentation);
