@@ -54,6 +54,7 @@
         </logger> -->
 
         <logger name="com.trodix.documentstorage" level="DEBUG" />
+        <logger name="com.trodix.documentstorage.service.FileSearchService" level="TRACE" />
 
     </springProfile>
 
