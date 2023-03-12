@@ -68,7 +68,7 @@ public class StorageController {
         return nodeMapper.nodeRepresentationToNodeResponse(nodeRepresentation);
     }
 
-    @Operation(summary = "Get the content of the file attached to the node")
+    @Operation(summary = "Get the content of the latest version of the file attached to the node")
     @GetMapping("/node/{nodeId}/content")
     public ResponseEntity<ByteArrayResource> getNodeContentById(@PathVariable final String nodeId) {
         final NodeRepresentation node = nodeService.findByNodeId(nodeId);
@@ -77,9 +77,43 @@ public class StorageController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found for nodeId " + nodeId);
         }
 
-        final byte[] data = storageService.getFile(node.getDirectoryPath(), node.getUuid());
+        final String fileId = nodeService.findFileContentUuid(nodeId);
+
+        if (fileId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Filecontent not found for nodeId " + nodeId);
+        }
+
+        final byte[] data = storageService.getFile(node.getDirectoryPath(), fileId);
         final ByteArrayResource resource = new ByteArrayResource(data);
         
+        final String filename = nodeService.getOriginalFileName(nodeService.nodeRepresentationToNode(node));
+
+        return ResponseEntity
+                .ok()
+                .contentLength(data.length)
+                .header("Content-type", "application/octet-stream")
+                .header("Content-disposition", "attachment; filename=\"" + filename + "\"")
+                .body(resource);
+    }
+
+    @Operation(summary = "Get the content of a specific version of the file attached to the node")
+    @GetMapping("/node/{nodeId}/version/{version}/content")
+    public ResponseEntity<ByteArrayResource> getNodeContentById(@PathVariable final String nodeId, @PathVariable final int version) {
+        final NodeRepresentation node = nodeService.findByNodeId(nodeId);
+
+        if (node == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found for nodeId " + nodeId);
+        }
+
+        final String fileId = nodeService.findFileContentUuidForVersion(nodeId, version);
+
+        if (fileId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Filecontent not found for nodeId " + nodeId + " and version " + version);
+        }
+
+        final byte[] data = storageService.getFile(node.getDirectoryPath(), fileId);
+        final ByteArrayResource resource = new ByteArrayResource(data);
+
         final String filename = nodeService.getOriginalFileName(nodeService.nodeRepresentationToNode(node));
 
         return ResponseEntity

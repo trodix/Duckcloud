@@ -23,7 +23,6 @@ public class Model {
     @OneToOne(cascade = CascadeType.ALL)
     private QName qname;
 
-    @NotNull
     private PropertyType type;
 
 }

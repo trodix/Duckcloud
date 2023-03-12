@@ -192,4 +192,15 @@ public class NodeService {
         return null;
     }
 
+    public String findFileContentUuid(final String nodeId) {
+        int latestVersion = this.storedFileDAO.findLatestVersion(nodeId);
+        return findFileContentUuidForVersion(nodeId, latestVersion);
+    }
+
+    public String findFileContentUuidForVersion(final String nodeId, final int version) {
+        String fileUuid = this.storedFileDAO.findStoredFile(nodeId, version);
+
+        return fileUuid;
+    }
+
 }
