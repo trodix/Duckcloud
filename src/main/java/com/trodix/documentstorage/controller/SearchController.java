@@ -4,6 +4,7 @@ import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.*;
 import com.trodix.documentstorage.persistance.entity.Node;
 import com.trodix.documentstorage.persistance.entity.NodeIndex;
+import com.trodix.documentstorage.service.NodeIndexerService;
 import com.trodix.documentstorage.service.NodeService;
 import com.trodix.documentstorage.service.SearchService;
 import com.trodix.documentstorage.service.TreeService;
@@ -29,12 +30,14 @@ public class SearchController {
 
     private final NodeMapper nodeMapper;
 
+    private final NodeIndexerService nodeIndexerService;
+
+
     @Operation(summary = "Search indexed nodes by metadata (elasticsearch)")
-    @GetMapping("/search")
-    public SearchResult<NodeTreeElement> searchNodes(@RequestBody final SearchQuery searchRequest,
-                                                     @RequestParam(defaultValue = "0") final Integer limit) {
+    @PostMapping("/search")
+    public SearchResult<NodeTreeElement> searchNodes(@RequestBody final SearchQuery searchRequest, @RequestParam(defaultValue = "0") final Integer limit) {
         final List<NodeIndex> result = searchService.findNodeByFieldContaining(searchRequest.getTerm(), searchRequest.getValue(), limit);
-        final List<Node> nodeResult = result.stream().map(nodeMapper::nodeIndexToNode).toList();
+        final List<Node> nodeResult = result.stream().map(nodeIndexerService::nodeIndexToNode).toList();
         final List<NodeRepresentation> nodeRepresentationResult = nodeResult.stream().map(nodeService::nodeToNodeRepresentation).toList();
         final List<NodeTreeElement> tree = directoryService.buildTree(nodeRepresentationResult, false);
         return new SearchResult<>(tree.size(), tree);

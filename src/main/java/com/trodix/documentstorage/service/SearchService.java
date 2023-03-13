@@ -31,8 +31,7 @@ public class SearchService {
         final QueryBuilder queryBuilder =
                 QueryBuilders
                         .boolQuery()
-                        .must(QueryBuilders.matchQuery(field, value))
-                        .must(QueryBuilders.matchQuery("uuid", "dafbe1a2-c9f0-4067-922c-5f77fbf8de6d"));
+                        .must(QueryBuilders.matchQuery(field, value));
 
         final NativeSearchQueryBuilder nativeBuilder = new NativeSearchQueryBuilder();
         nativeBuilder.withFilter(queryBuilder);

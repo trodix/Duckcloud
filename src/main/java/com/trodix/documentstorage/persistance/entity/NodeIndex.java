@@ -3,6 +3,8 @@ package com.trodix.documentstorage.persistance.entity;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+
+import com.trodix.documentstorage.model.ContentModel;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
@@ -33,5 +35,8 @@ public class NodeIndex {
 
     @MultiField(mainField = @Field(type = FieldType.Flattened))
     private Map<String, Serializable> properties;
+
+    @Field(type = FieldType.Text, name = "cm:content")
+    private String filecontent;
 
 }

@@ -20,6 +20,7 @@
 		<java.version>17</java.version>
 		<minio-client.version>8.5.1</minio-client.version>
 		<spring-doc.version>1.6.9</spring-doc.version>
+		<tika-parsers.version>1.17</tika-parsers.version>
 	</properties>
 
 	<dependencies>
@@ -77,6 +78,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.tika</groupId>
+			<artifactId>tika-parsers</artifactId>
+			<version>${tika-parsers.version}</version>
 		</dependency>
 
 		<dependency>
