@@ -29,7 +29,8 @@ public class NodeManager {
             // FIXME value Date retrived from database cause an error in index creation
             // Unable to make field private int java.sql.Timestamp.nanos accessible: module java.sql does not \"opens java.sql\" to unnamed module
             Node node_ = nodeDAO.findByUuId(response.getUuid());
-            Node node = nodeService.nodeRepresentationToNode(nodeRep);
+            Node node = nodeService.nodeRepresentationToNode(response);
+            node.setVersions(node_.getVersions());
             // We need the dbId for the index
             node.setDbId(node_.getDbId());
 
@@ -48,6 +49,7 @@ public class NodeManager {
             // Unable to make field private int java.sql.Timestamp.nanos accessible: module java.sql does not \"opens java.sql\" to unnamed module
             Node node_ = response.getNode();
             Node node = nodeService.nodeRepresentationToNode(nodeRep);
+            node.setVersions(node_.getVersions());
             // We need the dbId for the index
             node.setDbId(node_.getDbId());
 

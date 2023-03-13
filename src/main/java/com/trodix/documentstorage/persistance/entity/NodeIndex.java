@@ -28,6 +28,9 @@ public class NodeIndex {
     @Field(type = FieldType.Text, name = "directoryPath")
     private String directoryPath;
 
+    @Field(type = FieldType.Integer, name = "versions")
+    private int versions;
+
     private String type;
 
     @MultiField(mainField = @Field(type = FieldType.Text))

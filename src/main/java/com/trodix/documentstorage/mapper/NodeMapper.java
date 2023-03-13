@@ -19,6 +19,7 @@ public class NodeMapper {
         response.setBucket(result.getBucket());
         response.setDirectoryPath(result.getDirectoryPath());
         response.setUuid(result.getUuid());
+        response.setVersions(result.getVersions());
         response.setType(result.getType());
         response.setAspects(result.getAspects());
         response.setProperties(result.getProperties());

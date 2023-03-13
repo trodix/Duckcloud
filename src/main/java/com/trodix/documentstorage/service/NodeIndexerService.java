@@ -131,6 +131,7 @@ public class NodeIndexerService {
         node.setUuid(nodeIndex.getUuid());
         node.setDirectoryPath(nodeIndex.getDirectoryPath());
         node.setBucket(nodeIndex.getBucket());
+        node.setVersions(nodeIndex.getVersions());
         node.setType(typeService.stringToType(nodeIndex.getType()));
         node.setAspects(nodeIndex.getAspects().stream().map(aspectService::stringToAspect).toList());
         node.setProperties(new ArrayList<>());

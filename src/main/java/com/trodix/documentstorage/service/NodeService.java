@@ -90,6 +90,7 @@ public class NodeService {
         nodeRepresentation.setBucket(node.getBucket());
         nodeRepresentation.setDirectoryPath(node.getDirectoryPath());
         nodeRepresentation.setUuid(node.getUuid());
+        nodeRepresentation.setVersions(node.getVersions());
         nodeRepresentation.setType(typeService.typeToString(node.getType()));
         nodeRepresentation.setAspects(aspects);
         nodeRepresentation.setProperties(properties);
@@ -99,7 +100,7 @@ public class NodeService {
 
     @Transactional
     public NodeRepresentation persistNode(final NodeRepresentation nodeRep, final byte[] file) {
-        final Node node = nodeRepresentationToNode(nodeRep);
+        Node node = nodeRepresentationToNode(nodeRep);
         // TODO support multiple buckets
         node.setBucket(StorageService.ROOT_BUCKET);
 
@@ -111,7 +112,7 @@ public class NodeService {
         } catch (final ParseException e) {
             log.error(e.getMessage(), e);
         }
-        nodeDAO.save(node);
+        node = nodeDAO.save(node);
 
         nodeRep.setUuid(node.getUuid());
         nodeRep.setBucket(node.getBucket());
@@ -120,7 +121,7 @@ public class NodeService {
 
         createContent(nodeRep, file);
 
-        return nodeRep;
+        return findByNodeId(node.getUuid());
     }
 
     public StoredFile createContent(final NodeRepresentation nodeRep, final byte[] file) throws IllegalArgumentException {
@@ -237,6 +238,7 @@ public class NodeService {
         nodeIndex.setUuid(node.getUuid());
         nodeIndex.setDirectoryPath(node.getDirectoryPath());
         nodeIndex.setBucket(node.getBucket());
+        nodeIndex.setVersions(node.getVersions());
         nodeIndex.setType(typeService.typeToString(node.getType()));
         nodeIndex.setAspects(node.getAspects().stream().map(aspectService::aspectToString).toList());
 

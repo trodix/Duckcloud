@@ -14,6 +14,8 @@ public class NodeRepresentationResponse {
 
     private String directoryPath;
 
+    private int versions;
+
     private String type;
 
     private List<String> aspects;
