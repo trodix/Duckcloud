@@ -1,4 +1,4 @@
-package com.trodix.documentstorage.model;
+package com.trodix.documentstorage.response;
 
 import java.io.Serializable;
 import java.util.List;

@@ -4,6 +4,7 @@ import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.*;
 import com.trodix.documentstorage.persistance.entity.Node;
 import com.trodix.documentstorage.persistance.entity.NodeIndex;
+import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import com.trodix.documentstorage.service.NodeIndexerService;
 import com.trodix.documentstorage.service.NodeService;
 import com.trodix.documentstorage.service.SearchService;
@@ -20,6 +21,7 @@ import java.util.List;
 @RestController
 @AllArgsConstructor
 @Slf4j
+@CrossOrigin("*")
 public class SearchController {
 
     private final NodeService nodeService;

@@ -2,8 +2,8 @@ package com.trodix.documentstorage.controller;
 
 import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.NodeRepresentation;
-import com.trodix.documentstorage.model.NodeRepresentationRequest;
-import com.trodix.documentstorage.model.NodeRepresentationResponse;
+import com.trodix.documentstorage.request.NodeRepresentationRequest;
+import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import com.trodix.documentstorage.persistance.entity.StoredFile;
 import com.trodix.documentstorage.service.NodeManager;
 import com.trodix.documentstorage.service.NodeService;
@@ -26,6 +26,7 @@ import java.util.List;
 @RestController
 @AllArgsConstructor
 @Slf4j
+@CrossOrigin("*")
 public class StorageController {
 
     private final StorageService storageService;
