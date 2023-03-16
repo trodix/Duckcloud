@@ -84,6 +84,9 @@ public class OnlyOfficeIntegrationController {
             case DOCUMENT_EDITED_STATE_SAVED:
             case FORCE_SAVING_ERROR:
                 updateDocument(data.getKey(), data.getUrl());
+                break;
+            default:
+                break;
         }
 
         return new OnlyOfficeUpdatedDocumentResponse(0);
