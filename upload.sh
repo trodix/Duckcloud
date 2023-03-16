@@ -15,7 +15,7 @@ main() {
 		echo -e "\n======== $i ========\n"
 		curl --location --request POST 'http://localhost:8010/upload' \
 			--form "file=@$PATHFILE" \
-			--form "directoryPath=/fruits" \
+			--form "directoryPath=/fruits/apple/red" \
 			--form "aspects=app-doc:fruit, app-doc:fish" \
 			--form "properties[fruit:name]=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')" \
 			--form "properties[fruit:weight]=$(shuf -i 10-9999 -n 1)" \

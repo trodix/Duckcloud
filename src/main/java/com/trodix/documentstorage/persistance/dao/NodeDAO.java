@@ -1,6 +1,10 @@
 package com.trodix.documentstorage.persistance.dao;
 
 import java.util.List;
+
+import com.trodix.documentstorage.model.ContentModel;
+import com.trodix.documentstorage.persistance.mapper.StoredFileRowMapper;
+import com.trodix.documentstorage.persistance.utils.DaoUtils;
 import org.springframework.jdbc.core.RowCountCallbackHandler;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -60,7 +64,7 @@ public class NodeDAO {
             tpl.update(query, params);
         }
 
-        int maxVersion = storedFileDAO.findLatestVersion(node.getDbId());
+        int maxVersion = storedFileDAO.findStoredFileLatestVersion(node.getDbId());
 
         if (maxVersion > node.getVersions()) {
             node.setVersions(maxVersion);
@@ -75,6 +79,42 @@ public class NodeDAO {
 
     public List<Node> findByPath(final String path) {
         return nodeRepository.findByDirectoryPath(path);
+    }
+
+    public boolean isDirectoryAtPathExists(final String directoryPath) {
+
+        String directoryParentPath = directoryPath.substring(0, directoryPath.lastIndexOf("/"));
+
+        if (directoryParentPath.length() == 0) {
+            directoryParentPath = "/";
+        }
+
+        String directoryName = directoryPath.substring(directoryPath.lastIndexOf("/") + 1, directoryPath.length());
+
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("directory_parent_path", directoryParentPath);
+        params.addValue("directory_name", directoryName);
+        params.addValue("content_model_namespace", ContentModel.TYPE_DIRECTORY.split(":")[0]);
+        params.addValue("type_directory_name", ContentModel.TYPE_DIRECTORY.split(":")[1]);
+        params.addValue("qname_content_model_name", ContentModel.PROP_NAME.split(":")[1]);
+
+        final String query = """
+                SELECT count(n.id) FROM node n
+                INNER JOIN type t ON t.id = n.type_id
+                INNER JOIN qname q ON q.id = t.qname_id
+                INNER JOIN namespace n2 ON q.namespace_id  = n2.id
+                INNER JOIN node_property np ON np.node_id = n.id
+                INNER JOIN property p ON p.id = np.properties_id
+                WHERE n2.name = :content_model_namespace AND q.name = :type_directory_name and p.qname_id = (
+                    SELECT q2.id FROM qname q2
+                    INNER JOIN namespace n3 ON n3.id = q2.namespace_id
+                    WHERE n3.name = :content_model_namespace AND q2.name = :qname_content_model_name
+                )
+                AND n.directory_path = :directory_parent_path
+                AND p.string_value = :directory_name
+                """;
+
+        return tpl.queryForObject(query, params, Integer.class) > 0;
     }
 
     public Node findByUuId(final String uuid) {

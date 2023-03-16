@@ -28,14 +28,36 @@ public class NodeMapper {
     }
 
     public NodeRepresentation nodeRepresentationRequestToNodeRepresentation(final NodeRepresentationRequest node, final MultipartFile file) {
+
+        if (file == null) {
+            throw new IllegalArgumentException("Node of type " + ContentModel.TYPE_CONTENT + " expects a non null file");
+        }
+
         final NodeRepresentation createNodeData = new NodeRepresentation();
         createNodeData.setBucket(node.getBucket());
         createNodeData.setDirectoryPath(node.getDirectoryPath());
         createNodeData.setContentType(file.getContentType());
-        createNodeData.setType(node.getType());
+        createNodeData.setType(ContentModel.TYPE_CONTENT);
         createNodeData.setAspects(node.getAspects());
         createNodeData.setProperties(node.getProperties());
         createNodeData.getProperties().put(ContentModel.PROP_NAME, file.getOriginalFilename());
+
+        return createNodeData;
+    }
+
+    public NodeRepresentation nodeRepresentationRequestToNodeRepresentation(final NodeRepresentationRequest node) {
+        final NodeRepresentation createNodeData = new NodeRepresentation();
+        createNodeData.setBucket(node.getBucket());
+        createNodeData.setDirectoryPath(node.getDirectoryPath());
+        createNodeData.setContentType(null);
+        createNodeData.setType(ContentModel.TYPE_DIRECTORY);
+        createNodeData.setAspects(node.getAspects());
+
+        if (node.getProperties().get(ContentModel.PROP_NAME) == null) {
+            throw new IllegalArgumentException("Directory must contain a property " + ContentModel.PROP_NAME);
+        }
+
+        createNodeData.setProperties(node.getProperties());
 
         return createNodeData;
     }

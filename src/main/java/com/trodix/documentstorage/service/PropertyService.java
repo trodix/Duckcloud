@@ -41,6 +41,10 @@ public class PropertyService extends QNameModelService {
 
         switch (model.getType()) {
             case STRING:
+                if (value == null) {
+                    p.setStringValue(null);
+                    break;
+                }
                 p.setStringValue(value.toString());
                 break;
             case LONG:

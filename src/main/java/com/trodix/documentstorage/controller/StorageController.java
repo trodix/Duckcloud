@@ -43,9 +43,18 @@ public class StorageController {
         return storageService.listBuckets();
     }
 
+    @Operation(summary = "Create a new directory")
+    @PostMapping(path = "/directory", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public NodeRepresentationResponse createDirectory(@RequestBody final NodeRepresentationRequest node) {
+        final NodeRepresentation createNodeData = nodeMapper.nodeRepresentationRequestToNodeRepresentation(node);
+        final NodeRepresentation result = nodeManager.persistNode(createNodeData, null);
+
+        return nodeMapper.nodeRepresentationToNodeResponse(result);
+    }
+
     @Operation(summary = "Create a new node and attach a file")
     @PostMapping(path = "/upload", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public NodeRepresentationResponse uploadFile(@RequestPart(value = "file", required = false) final MultipartFile file, final NodeRepresentationRequest node)
+    public NodeRepresentationResponse uploadFile(@RequestPart(value = "file") final MultipartFile file, final NodeRepresentationRequest node)
             throws IOException {
 
         final NodeRepresentation createNodeData = nodeMapper.nodeRepresentationRequestToNodeRepresentation(node, file);
@@ -56,7 +65,7 @@ public class StorageController {
 
     @Operation(summary = "Upload a new version of a file")
     @PutMapping(path = "/{nodeId}/upload", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public NodeRepresentationResponse uploadNewVersion(@PathVariable final String nodeId, @RequestPart(value = "file", required = false) final MultipartFile file)
+    public NodeRepresentationResponse uploadNewVersion(@PathVariable final String nodeId, @RequestPart(value = "file") final MultipartFile file)
             throws IOException {
 
         final NodeRepresentation nodeRepresentation = nodeService.findByNodeId(nodeId);

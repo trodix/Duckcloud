@@ -1,7 +1,7 @@
 package com.trodix.documentstorage.persistance.dao;
 
+import com.trodix.documentstorage.model.ContentModel;
 import com.trodix.documentstorage.persistance.entity.StoredFile;
-import com.trodix.documentstorage.persistance.mapper.QNameRowMapper;
 import com.trodix.documentstorage.persistance.mapper.StoredFileRowMapper;
 import com.trodix.documentstorage.persistance.utils.DaoUtils;
 import lombok.AllArgsConstructor;
@@ -20,7 +20,7 @@ public class StoredFileDAO {
 
     private final NamedParameterJdbcTemplate tpl;
 
-    public int findLatestVersion(Long nodeDbId) {
+    public int findStoredFileLatestVersion(Long nodeDbId) {
 
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("node_id", nodeDbId);
@@ -35,33 +35,37 @@ public class StoredFileDAO {
         return rowCount.getRowCount();
     }
 
-    public int findLatestVersion(String nodeUuid) {
+    public int findStoredFileLatestVersion(String nodeUuid) {
 
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("node_uuid", nodeUuid);
 
-        final String existRelationQuery = """
-                    SELECT sf.version as sf_version FROM stored_file sf
-                        INNER JOIN node n ON n.id = sf.node_id
-                        WHERE n.uuid = :node_uuid""";
+        final String latestVersionQuery = """
+                    SELECT coalesce(max(sf.version), 0) as latest_version FROM stored_file sf
+                    INNER JOIN node n ON n.id = sf.node_id
+                    WHERE n.uuid = :node_uuid
+                    """;
 
-        final RowCountCallbackHandler rowCount = new RowCountCallbackHandler();
-        tpl.query(existRelationQuery, params, rowCount);
-
-        return rowCount.getRowCount();
+        return tpl.queryForObject(latestVersionQuery, params, Integer.class);
     }
 
     public String findStoredFile(String nodeUuid, int version) {
 
         final MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("node_uuid", nodeUuid);
+        params.addValue("type_content_namespace", ContentModel.TYPE_CONTENT.split(":")[0]);
+        params.addValue("type_content_name", ContentModel.TYPE_CONTENT.split(":")[1]);
         params.addValue("version", version);
 
         final String query = """
-                    SELECT sf.uuid as sf_uuid FROM stored_file sf
-                        INNER JOIN node n ON n.id = sf.node_id
-                        WHERE n.uuid = :node_uuid
-                        AND sf.version = :version""";
+                SELECT sf.uuid as sf_uuid FROM stored_file sf
+                    INNER JOIN node n ON n.id = sf.node_id
+                    INNER JOIN type t ON t.id = n.type_id
+                    INNER JOIN qname q ON q.id = t.qname_id
+                    INNER JOIN namespace n2 ON q.namespace_id = n2.id
+                    WHERE n.uuid = :node_uuid AND n2.name = :type_content_namespace AND q.name = :type_content_name
+                    AND sf.version = :version
+                    """;
 
         return DaoUtils.findOne(tpl.query(query, params, new StoredFileRowMapper())).orElse(null);
     }

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -22,7 +23,7 @@ public class NodeManager {
 
     private final NodeDAO nodeDAO;
 
-    public NodeRepresentation persistNode(final NodeRepresentation nodeRep, final byte[] file) {
+    public NodeRepresentation persistNode(final NodeRepresentation nodeRep, @Nullable final byte[] file) {
         NodeRepresentation response = nodeService.persistNode(nodeRep, file);
 
         //new CompletableFuture<Void>().thenRun(() -> {

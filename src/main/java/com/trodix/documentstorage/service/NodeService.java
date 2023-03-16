@@ -66,6 +66,7 @@ public class NodeService {
         node.setBucket(nodeRepresentation.getBucket());
         node.setDirectoryPath(nodeRepresentation.getDirectoryPath());
         node.setUuid(StringUtils.isBlank(nodeRepresentation.getUuid()) ? UUID.randomUUID().toString() : nodeRepresentation.getUuid());
+        node.setVersions(nodeRepresentation.getVersions());
         node.setType(type);
         node.setAspects(aspects);
         node.setProperties(properties);
@@ -100,7 +101,9 @@ public class NodeService {
 
     @Transactional
     public NodeRepresentation persistNode(final NodeRepresentation nodeRep, final byte[] file) {
+
         Node node = nodeRepresentationToNode(nodeRep);
+
         // TODO support multiple buckets
         node.setBucket(StorageService.ROOT_BUCKET);
 
@@ -112,14 +115,59 @@ public class NodeService {
         } catch (final ParseException e) {
             log.error(e.getMessage(), e);
         }
+
+        if (isTypeContent(node) && file != null) {
+            // get directories or create them (recursively)
+            String tmpSegmentBuild = "";
+            boolean skipCheckExist = false;
+            for (String segment : nodeRep.getDirectoryPath().split("/")) {
+
+                if (segment.length() == 0) {
+                    continue;
+                }
+
+                tmpSegmentBuild += "/" + segment;
+
+                boolean dirExists = skipCheckExist ? false : nodeDAO.isDirectoryAtPathExists(tmpSegmentBuild);
+                log.trace("Check path [{}] exists: {} - skipCheckExist: {}", tmpSegmentBuild, dirExists, skipCheckExist);
+
+                if (dirExists) {
+                    log.debug("Directory {} already exists, NOT recreating it again");
+                } else {
+                    // create a directory
+                    skipCheckExist = true;
+                    String dirPath = tmpSegmentBuild.substring(0, tmpSegmentBuild.lastIndexOf("/"));
+                    if (dirPath.length() == 0) {
+                        dirPath = "/";
+                    }
+                    String dirName = tmpSegmentBuild.substring(tmpSegmentBuild.lastIndexOf("/") + 1, tmpSegmentBuild.length());
+                    Map<String, Serializable> properties = new HashMap<>();
+                    properties.put(ContentModel.PROP_NAME, dirName);
+
+                    NodeRepresentation nodeRepDir = new NodeRepresentation();
+                    nodeRepDir.setUuid(UUID.randomUUID().toString());
+                    nodeRepDir.setDirectoryPath(dirPath);
+                    nodeRepDir.setType(ContentModel.TYPE_DIRECTORY);
+                    nodeRepDir.setVersions(1);
+                    nodeRepDir.setAspects(Collections.emptyList());
+                    nodeRepDir.setProperties(properties);
+
+                    persistNode(nodeRepDir, null);
+                    log.debug("New directory created at {} (dirName={}) for storing node {} at path {}", dirPath, dirName, node.getUuid(), node.getDirectoryPath());
+                }
+            }
+        }
+
         node = nodeDAO.save(node);
 
-        nodeRep.setUuid(node.getUuid());
-        nodeRep.setBucket(node.getBucket());
-        nodeRep.setType(typeService.typeToString(node.getType()));
-        nodeRep.setVersions(node.getVersions());
+        if (isTypeContent(node) && file != null) {
+            nodeRep.setUuid(node.getUuid());
+            nodeRep.setBucket(node.getBucket());
+            nodeRep.setType(typeService.typeToString(node.getType()));
+            nodeRep.setVersions(node.getVersions());
 
-        createContent(nodeRep, file);
+            createContent(nodeRep, file);
+        }
 
         return findByNodeId(node.getUuid());
     }
@@ -129,6 +177,8 @@ public class NodeService {
         final Node node = nodeDAO.findByUuId(nodeRep.getUuid());
         if (node == null) {
             throw new IllegalArgumentException("Node with uuid " + nodeRep.getUuid() + " was not found");
+        } else if (!isTypeContent(node)) {
+            throw new IllegalArgumentException("Node must be of type " + ContentModel.TYPE_CONTENT + ". Type found: " + typeService.typeToString(node.getType()));
         }
 
         // Validate the media type
@@ -189,7 +239,7 @@ public class NodeService {
     }
 
     public String findFileContentUuid(final String nodeId) {
-        int latestVersion = this.storedFileDAO.findLatestVersion(nodeId);
+        int latestVersion = this.storedFileDAO.findStoredFileLatestVersion(nodeId);
         return findFileContentUuidForVersion(nodeId, latestVersion);
     }
 
@@ -218,7 +268,17 @@ public class NodeService {
     }
 
     public String extractFileContent(Node node) throws ParsingContentException {
+
+        if (!isTypeContent(node)) {
+            throw new IllegalArgumentException("Node must be of type " + ContentModel.TYPE_CONTENT + " to extract file content");
+        }
+
         String fileUuid = findFileContentUuid(node.getUuid());
+
+        if (fileUuid == null) {
+            throw new IllegalStateException("File not found for nodeId " + node.getUuid());
+        }
+
         byte[] file = storageService.getFile(node.getDirectoryPath(), fileUuid);
 
         return fileSearchService.extractFileContent(file);
@@ -229,6 +289,14 @@ public class NodeService {
         byte[] file = storageService.getFile(nodeRepresentation.getDirectoryPath(), fileUuid);
 
         return fileSearchService.extractFileContent(file);
+    }
+
+    public boolean isTypeContent(final Node node) {
+        return ContentModel.TYPE_CONTENT.equals(qnameService.qnameToString(node.getType().getQname()));
+    }
+
+    public boolean isTypeDirectory(final Node node) {
+        return ContentModel.TYPE_DIRECTORY.equals(qnameService.qnameToString(node.getType().getQname()));
     }
 
     public NodeIndex nodeToNodeIndex(final Node node) {
@@ -242,15 +310,17 @@ public class NodeService {
         nodeIndex.setType(typeService.typeToString(node.getType()));
         nodeIndex.setAspects(node.getAspects().stream().map(aspectService::aspectToString).toList());
 
-        try {
-            nodeIndex.setFilecontent(extractFileContent(node));
-        } catch (ParsingContentException e) {
-            log.error("Error while parsing file content. File content will not be indexed", e);
-        }
-
         final Map<String, Serializable> properties = new HashMap<>();
 
         node.getProperties().forEach(p -> properties.put(qnameService.qnameToString(p.getQname()), propertyService.getPropertyValue(p)));
+
+        if (isTypeContent(node)) {
+            try {
+                nodeIndex.setFilecontent(extractFileContent(node));
+            } catch (ParsingContentException e) {
+                log.error("Error while parsing file content. File content will not be indexed", e);
+            }
+        }
 
         nodeIndex.setProperties(properties);
 
