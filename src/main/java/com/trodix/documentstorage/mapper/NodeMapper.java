@@ -2,6 +2,7 @@ package com.trodix.documentstorage.mapper;
 
 import com.trodix.documentstorage.model.ContentModel;
 import com.trodix.documentstorage.model.NodeRepresentation;
+import com.trodix.documentstorage.request.DirectoryRepresentationRequest;
 import com.trodix.documentstorage.request.NodeRepresentationRequest;
 import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import lombok.AllArgsConstructor;
@@ -45,7 +46,7 @@ public class NodeMapper {
         return createNodeData;
     }
 
-    public NodeRepresentation nodeRepresentationRequestToNodeRepresentation(final NodeRepresentationRequest node) {
+    public NodeRepresentation directoryRepresentationRequestToNodeRepresentation(final DirectoryRepresentationRequest node) {
         final NodeRepresentation createNodeData = new NodeRepresentation();
         createNodeData.setBucket(node.getBucket());
         createNodeData.setDirectoryPath(node.getDirectoryPath());

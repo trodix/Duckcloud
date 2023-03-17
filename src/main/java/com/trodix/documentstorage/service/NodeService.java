@@ -44,6 +44,11 @@ public class NodeService {
         final Type type = typeService.stringToType(nodeRepresentation.getType());
 
         final List<Aspect> aspects = new ArrayList<>();
+
+        if (nodeRepresentation.getAspects() == null) {
+            nodeRepresentation.setAspects(new ArrayList<>());
+        }
+
         nodeRepresentation.getAspects().forEach(aspectString -> {
             final Aspect aspect = aspectService.stringToAspect(aspectString);
             aspects.add(aspect);

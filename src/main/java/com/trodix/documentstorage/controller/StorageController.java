@@ -2,6 +2,7 @@ package com.trodix.documentstorage.controller;
 
 import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.NodeRepresentation;
+import com.trodix.documentstorage.request.DirectoryRepresentationRequest;
 import com.trodix.documentstorage.request.NodeRepresentationRequest;
 import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import com.trodix.documentstorage.persistance.entity.StoredFile;
@@ -45,8 +46,8 @@ public class StorageController {
 
     @Operation(summary = "Create a new directory")
     @PostMapping(path = "/directory", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public NodeRepresentationResponse createDirectory(@RequestBody final NodeRepresentationRequest node) {
-        final NodeRepresentation createNodeData = nodeMapper.nodeRepresentationRequestToNodeRepresentation(node);
+    public NodeRepresentationResponse createDirectory(final DirectoryRepresentationRequest node) {
+        final NodeRepresentation createNodeData = nodeMapper.directoryRepresentationRequestToNodeRepresentation(node);
         final NodeRepresentation result = nodeManager.persistNode(createNodeData, null);
 
         return nodeMapper.nodeRepresentationToNodeResponse(result);
