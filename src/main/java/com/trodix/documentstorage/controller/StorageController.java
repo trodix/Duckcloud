@@ -21,13 +21,14 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.annotation.security.RolesAllowed;
 import java.io.IOException;
 import java.util.List;
 
 @RestController
 @AllArgsConstructor
 @Slf4j
-@CrossOrigin("*")
+@RolesAllowed({"ecm-user"})
 public class StorageController {
 
     private final StorageService storageService;

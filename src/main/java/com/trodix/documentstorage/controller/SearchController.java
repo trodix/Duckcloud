@@ -16,12 +16,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import javax.annotation.security.RolesAllowed;
 import java.util.List;
 
 @RestController
 @AllArgsConstructor
 @Slf4j
-@CrossOrigin("*")
+@RolesAllowed({"ecm-user"})
 public class SearchController {
 
     private final NodeService nodeService;
