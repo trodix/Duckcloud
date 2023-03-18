@@ -26,17 +26,21 @@ public class MandatoryJwtEmailClaimSecurityFilter extends HttpFilter {
     protected void doFilter(final HttpServletRequest request, final HttpServletResponse response, final FilterChain chain)
             throws IOException, ServletException {
 
-        final Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof Jwt) {
 
-        if (!jwt.hasClaim(Claims.EMAIL.value) || StringUtils.isBlank(jwt.getClaim(Claims.EMAIL.value))) {
-            final String msg = "The JWT token did not contained the mandatory " + Claims.EMAIL.value + " claim.";
-            log.info(msg);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
+            final Jwt jwt = (Jwt) principal;
+
+            if (!jwt.hasClaim(Claims.EMAIL.value) || StringUtils.isBlank(jwt.getClaim(Claims.EMAIL.value))) {
+                final String msg = "The JWT token did not contained the mandatory " + Claims.EMAIL.value + " claim.";
+                log.info(msg);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+
+            log.debug("Claim {} found.", Claims.EMAIL.value);
         }
-
-        log.debug("Claim {} found.", Claims.EMAIL.value);
 
         chain.doFilter(request, response);
     }

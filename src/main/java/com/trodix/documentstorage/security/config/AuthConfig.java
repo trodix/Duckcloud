@@ -44,6 +44,7 @@ public class AuthConfig {
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
 
         http.cors();
+        http.csrf().disable();
 
         // OAUTH authentication
         http.requestMatchers()
@@ -54,8 +55,10 @@ public class AuthConfig {
                                 .jwt()
                                 .jwtAuthenticationConverter(keycloakJwtAuthenticationConverter))
                 .authorizeRequests()
+                .antMatchers("/swagger-ui/**", "/v3/api-docs/**", "/integration/onlyoffice/**")
+                    .permitAll()
                 .anyRequest()
-                .authenticated();
+                    .authenticated();
 
         return http.build();
     }

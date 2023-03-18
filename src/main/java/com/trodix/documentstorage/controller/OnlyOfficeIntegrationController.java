@@ -32,7 +32,6 @@ import java.util.UUID;
 @RestController
 @AllArgsConstructor
 @Slf4j
-@CrossOrigin("*")
 @RequestMapping("/integration/onlyoffice")
 public class OnlyOfficeIntegrationController {
 
@@ -74,8 +73,9 @@ public class OnlyOfficeIntegrationController {
 
     @Operation(summary = "Update the file content", description = "See https://api.onlyoffice.com/editors/callback")
     @PostMapping(path = "/document", consumes = {MediaType.APPLICATION_JSON_VALUE})
-    public OnlyOfficeUpdatedDocumentResponse updateDocumentContent(@Valid @RequestBody final OnlyOfficeCallbackRequest data) throws JsonProcessingException {
+    public OnlyOfficeUpdatedDocumentResponse updateDocumentContent(@Valid @RequestBody final OnlyOfficeCallbackRequest data, HttpServletRequest req) throws JsonProcessingException {
 
+        log.trace("Header Authentication: " + req.getHeader("Authorization"));
         log.debug("Document data received from OnlyOffice: \n" + data);
 
         switch (data.getStatus()) {
