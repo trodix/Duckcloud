@@ -1,11 +1,12 @@
 package com.trodix.documentstorage.service;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -103,6 +104,16 @@ public class NodeIndexerService {
 
         if (node.getDbId() == null) {
             throw new IllegalArgumentException("node.getDbId() was null");
+        }
+
+        // fix Unable to make field private int java.sql.Timestamp.nanos accessible
+        for (Map.Entry<String, Serializable> property : node.getProperties().entrySet()) {
+            if (property.getValue() instanceof java.sql.Timestamp) {
+                long millis = ((Timestamp) property.getValue()).getTime();
+//                Instant instant = Instant.ofEpochMilli(millis);
+//                OffsetDateTime fixedValue = OffsetDateTime.ofInstant(instant, TimeZone.getDefault().toZoneId());
+                property.setValue(millis);
+            }
         }
 
         final IndexQuery indexQuery = new IndexQueryBuilder()

@@ -4,6 +4,7 @@ import com.trodix.documentstorage.model.ContentModel;
 import com.trodix.documentstorage.model.NodeRepresentation;
 import com.trodix.documentstorage.request.DirectoryRepresentationRequest;
 import com.trodix.documentstorage.request.NodeRepresentationRequest;
+import com.trodix.documentstorage.request.NodeUpdateRequest;
 import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

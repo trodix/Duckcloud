@@ -7,6 +7,7 @@ import com.trodix.documentstorage.model.NodeRepresentation;
 import com.trodix.documentstorage.persistance.dao.NodeDAO;
 import com.trodix.documentstorage.persistance.dao.StoredFileDAO;
 import com.trodix.documentstorage.persistance.entity.*;
+import com.trodix.documentstorage.request.NodeUpdateRequest;
 import com.trodix.documentstorage.security.services.AuthenticationService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -111,8 +113,21 @@ public class NodeService {
         return nodeRepresentation;
     }
 
+    public  Node updateNode(final NodeRepresentation nodeRep) throws IllegalArgumentException {
+
+        Node existingNode = nodeDAO.findByUuId(nodeRep.getUuid());
+        Node node = nodeRepresentationToNode(nodeRep);
+        node.setDbId(existingNode.getDbId());
+
+        if (node == null) {
+            throw new IllegalArgumentException("Node not found for id " + nodeRep.getUuid());
+        }
+
+        return nodeDAO.update(node);
+    }
+
     @Transactional
-    public NodeRepresentation persistNode(final NodeRepresentation nodeRep, final byte[] file) {
+    public NodeRepresentation persistNode(final NodeRepresentation nodeRep, @Nullable final byte[] file) {
 
         Node node = nodeRepresentationToNode(nodeRep);
 
@@ -355,6 +370,72 @@ public class NodeService {
         nodeIndex.setProperties(properties);
 
         return nodeIndex;
+    }
+
+    public NodeRepresentation mergeNode(final NodeRepresentation oldNode, final NodeUpdateRequest newNode) {
+        NodeRepresentation mergedNode = new NodeRepresentation();
+
+        if (newNode.getNodeId() == null) {
+            newNode.setNodeId(oldNode.getUuid());
+        }
+        mergedNode.setUuid(newNode.getNodeId());
+
+        if (newNode.getBucket() == null) {
+            newNode.setBucket(oldNode.getBucket());
+        }
+        mergedNode.setBucket(newNode.getBucket());
+
+        if (newNode.getDirectoryPath() == null) {
+            newNode.setDirectoryPath(oldNode.getDirectoryPath());
+        }
+        mergedNode.setDirectoryPath(newNode.getDirectoryPath());
+
+        if (newNode.getType() != null && !newNode.getType().equals(oldNode.getType())) {
+            throw new IllegalArgumentException("Node type can not be changed");
+        } else if (newNode.getType() == null) {
+            newNode.setType(oldNode.getType());
+        }
+        mergedNode.setType(newNode.getType());
+
+        // merge aspects
+        if (newNode.getAspects() == null) {
+            newNode.setAspects(new ArrayList<>());
+        }
+
+        for (String aspect : newNode.getAspects()) {
+            if (!newNode.getAspects().contains(aspect)) {
+                newNode.getAspects().add(aspect);
+            }
+        }
+        mergedNode.setAspects(newNode.getAspects());
+
+        // merge properties
+        if (newNode.getProperties() == null) {
+            newNode.setProperties(new HashMap<>());
+        }
+        for (Map.Entry<String, Serializable> property : oldNode.getProperties().entrySet()) {
+            newNode.getProperties().putIfAbsent(property.getKey(), property.getValue());
+        }
+        mergedNode.setProperties(newNode.getProperties());
+
+        return mergedNode;
+    }
+
+    public NodeRepresentation nodeUpdateRequestToNodeRepresentation(NodeUpdateRequest nodeUpdateRequest) throws IllegalArgumentException {
+
+        if (nodeUpdateRequest.getNodeId() == null) {
+            throw new IllegalArgumentException("Node id must no be null");
+        }
+
+        NodeRepresentation existingNode = findByNodeId(nodeUpdateRequest.getNodeId());
+
+        if (existingNode == null) {
+            throw new IllegalArgumentException("Node not found for id " + nodeUpdateRequest.getNodeId());
+        }
+
+        NodeRepresentation mergedNode = mergeNode(existingNode, nodeUpdateRequest);
+
+        return mergedNode;
     }
 
     public String getOwnerId(NodeRepresentation nodeRepresentation) {

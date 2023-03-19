@@ -4,6 +4,7 @@ import com.trodix.documentstorage.mapper.NodeMapper;
 import com.trodix.documentstorage.model.NodeRepresentation;
 import com.trodix.documentstorage.request.DirectoryRepresentationRequest;
 import com.trodix.documentstorage.request.NodeRepresentationRequest;
+import com.trodix.documentstorage.request.NodeUpdateRequest;
 import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import com.trodix.documentstorage.persistance.entity.StoredFile;
 import com.trodix.documentstorage.security.services.AuthenticationService;
@@ -92,6 +93,16 @@ public class StorageController {
         nodeRepresentation.setVersions(result.getVersion());
 
         return nodeMapper.nodeRepresentationToNodeResponse(nodeRepresentation);
+    }
+
+    @Operation(summary = "Update a node")
+    @PutMapping(path = "/node", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public NodeRepresentationResponse uploadNode(final NodeUpdateRequest nodeUpdateRequest) {
+
+        final NodeRepresentation updateNodeData = nodeService.nodeUpdateRequestToNodeRepresentation(nodeUpdateRequest);
+        final NodeRepresentation result = nodeManager.updateNode(updateNodeData);
+
+        return nodeMapper.nodeRepresentationToNodeResponse(result);
     }
 
     @Operation(summary = "Get the content of the latest version of the file attached to the node")

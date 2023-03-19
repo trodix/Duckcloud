@@ -10,6 +10,7 @@ import com.trodix.documentstorage.persistance.repository.NodeRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowCountCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -17,6 +18,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.List;
 
 @Repository
@@ -75,6 +78,27 @@ public class NodeDAO {
         node = persistNodeProperties(node);
 
         return node;
+    }
+
+    @Transactional
+    public Node update(Node node) {
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("bucket", node.getBucket());
+        params.addValue("directory_path", node.getDirectoryPath());
+        params.addValue("uuid", node.getUuid());
+        params.addValue("versions", node.getVersions());
+
+        final String queryUpdateNode = """
+            UPDATE node SET bucket = :bucket, directory_path = :directory_path, versions = :versions WHERE uuid = :uuid
+        """;
+        tpl.update(queryUpdateNode, params);
+
+        deleteOldNodeAspectRelations(node);
+        deleteOldNodePropertiesRelation(node);
+        persistNodeAspects(node);
+        persistNodeProperties(node);
+
+        return findByUuId(node.getUuid());
     }
 
     public List<Node> findByPath(final String path) {
@@ -196,6 +220,36 @@ public class NodeDAO {
     }
 
     protected Node persistNodeProperties(final Node node) {
+        // TODO: set les id des properties pour les passer au propertyDAO.save()
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("node_id", node.getDbId());
+        params.addValue("props", "");
+
+        String existingRelations = """
+               SELECT p.id as p_id, (ns.name || ':' || q.name) as prop_name
+               FROM property p
+               INNER join node_property np ON np.properties_id = p.id
+               INNER JOIN qname q ON q.id = p.qname_id
+               INNER JOIN namespace ns ON ns.id = q.namespace_id
+               WHERE np.node_id = :node_id;
+                """;
+
+        List<Pair<Long, String>> relations = tpl.query(existingRelations, params, new RowMapper<Pair<Long, String>>() {
+            @Override
+            public Pair<Long, String> mapRow(ResultSet rs, int rowNum) throws SQLException {
+                return new Pair(rs.getLong("p_id"), rs.getString("prop_name"));
+            }
+        });
+
+        for (Pair<Long, String> relation : relations) {
+            node.getProperties().stream().map(p -> {
+                if ((p.getQname().getNamespace().getName() + ":" + p.getQname().getName()).equals(relation.getValue())) {
+                    p.setId(relation.getKey());
+                }
+                return p;
+            });
+        }
+
         // persist properties
         List.copyOf(node.getProperties()).forEach(property -> {
             final Property savedProperty = propertyDAO.save(property);
@@ -205,6 +259,30 @@ public class NodeDAO {
         persistNodePropertyRelation(node);
 
         return node;
+    }
+
+    class Pair<T, R> {
+
+        private T key;
+
+        private R value;
+
+        public Pair(T key, R value) {
+            this.key = key;
+            this.value = value;
+        }
+        public void setPair(T key, R value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public T getKey() {
+            return this.key;
+        }
+
+        public R getValue() {
+            return this.value;
+        }
     }
 
     protected void persistNodePropertyRelation(final Node node) {
@@ -229,6 +307,46 @@ public class NodeDAO {
             }
         });
 
+    }
+
+    protected void deleteOldNodeAspectRelations(Node node) {
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("node_dbid", node.getDbId());
+
+        String query = """
+                    DELETE FROM node_aspect na
+                    WHERE na.node_id = :node_dbid
+                """;
+        tpl.update(query, params);
+    }
+
+    @Transactional
+    protected void deleteOldNodePropertiesRelation(Node node) {
+
+        deleteOldNodeProperties(node);
+
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("node_dbid", node.getDbId());
+
+        String query = """
+                    DELETE FROM node_property np
+                    WHERE np.node_id = :node_dbid
+                """;
+        tpl.update(query, params);
+    }
+
+    protected void deleteOldNodeProperties(Node node) {
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("node_dbid", node.getDbId());
+
+        String query = """
+                    DELETE FROM property p
+                    WHERE p.id IN (
+                        SELECT np.node_id FROM node_property np 
+                        WHERE np.node_id = :node_dbid
+                    )
+                """;
+        tpl.update(query, params);
     }
 
 }

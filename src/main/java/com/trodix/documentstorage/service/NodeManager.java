@@ -27,6 +27,14 @@ public class NodeManager {
 
     private final StorageService storageService;
 
+    public NodeRepresentation updateNode(final NodeRepresentation nodeRep) {
+        Node node = nodeService.updateNode(nodeRep);
+        final NodeIndex nodeIndex = nodeService.nodeToNodeIndex(node);
+        nodeIndexerService.createNodeIndex(nodeIndex);
+
+        return nodeService.nodeToNodeRepresentation(node);
+    }
+
     public NodeRepresentation persistNode(final NodeRepresentation nodeRep, @Nullable final byte[] file) {
         NodeRepresentation response = nodeService.persistNode(nodeRep, file);
 
