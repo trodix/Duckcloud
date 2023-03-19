@@ -1,7 +1,8 @@
 package com.trodix.documentstorage.security.utils;
 
 public enum Claims {
-    EMAIL("email"),;
+    EMAIL("email"),
+    NAME("name"),;
 
     public final String value;
 

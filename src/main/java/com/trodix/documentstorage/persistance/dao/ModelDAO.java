@@ -2,6 +2,8 @@ package com.trodix.documentstorage.persistance.dao;
 
 import java.sql.Types;
 import java.util.Optional;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -18,6 +20,7 @@ import lombok.AllArgsConstructor;
 @Repository
 @Transactional
 @AllArgsConstructor
+@Slf4j
 public class ModelDAO {
 
     private final NamedParameterJdbcTemplate tpl;
@@ -29,9 +32,9 @@ public class ModelDAO {
     public Model save(final Model model) {
 
         if (model.getQname().getId() == null) {
-            final Optional<QName> existionQName = qnameDAO.findByNamespaceAndQname(model.getQname().getNamespace(), model.getQname());
-            if (existionQName.isPresent()) {
-                model.setQname(existionQName.get());
+            final Optional<QName> existingQName = qnameDAO.findByNamespaceAndQname(model.getQname().getNamespace(), model.getQname());
+            if (existingQName.isPresent()) {
+                model.setQname(existingQName.get());
             } else {
                 qnameDAO.save(model.getQname());
             }
@@ -47,15 +50,19 @@ public class ModelDAO {
         if (model.getType() != null) {
             params.addValue("type", model.getType().ordinal(), Types.INTEGER);
             if (existingModel.isEmpty()) {
+                log.debug("Registering model: " + model);
                 query = "INSERT INTO model (qname_id, type) VALUES (:qname_id, :type)";
             } else {
+                log.debug("Updating model: " + model);
                 query = "UPDATE model SET type = :type WHERE qname_id = :qname_id";
             }
         } else {
             if (existingModel.isEmpty()) {
+                log.debug("Registering model: " + model);
                 query = "INSERT INTO model (qname_id) VALUES (:qname_id)";
             } else {
-                throw new IllegalArgumentException("Nothing to update for model " + model);
+                log.debug("Nothing to update for model " + model);
+                return existingModel.get();
             }
         }
 

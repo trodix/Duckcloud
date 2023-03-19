@@ -18,7 +18,6 @@ public class ModelService {
     private final ModelDAO modelDAO;
 
     public Model save(final Model model) {
-        log.info("Registering model: " + model);
         return modelDAO.save(model);
     }
 

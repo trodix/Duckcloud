@@ -7,6 +7,16 @@ public class ContentModel {
 
     public static final String TYPE_DIRECTORY = getQNameString("directory");
 
+    public static final String PROP_CREATOR = getQNameString("creator");
+
+    public static final String PROP_CREATOR_NAME = getQNameString("creator-name");
+
+    public static final String PROP_CREATED_AT = getQNameString("created-at");
+
+    public static final String PROP_MODIFIED_BY = getQNameString("modified-by");
+
+    public static final String PROP_MODIFIED_AT = getQNameString("modified-at");
+
     public static final String PROP_NAME = getQNameString("name");
 
     private ContentModel() {

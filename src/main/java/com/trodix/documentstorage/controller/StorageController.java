@@ -6,6 +6,7 @@ import com.trodix.documentstorage.request.DirectoryRepresentationRequest;
 import com.trodix.documentstorage.request.NodeRepresentationRequest;
 import com.trodix.documentstorage.response.NodeRepresentationResponse;
 import com.trodix.documentstorage.persistance.entity.StoredFile;
+import com.trodix.documentstorage.security.services.AuthenticationService;
 import com.trodix.documentstorage.service.NodeManager;
 import com.trodix.documentstorage.service.NodeService;
 import com.trodix.documentstorage.service.StorageService;
@@ -13,19 +14,25 @@ import io.minio.messages.Bucket;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Scope;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.annotation.security.RolesAllowed;
 import java.io.IOException;
+import java.security.Principal;
 import java.util.List;
 
 @RestController
+@Scope(WebApplicationContext.SCOPE_REQUEST)
 @AllArgsConstructor
 @Slf4j
 @RolesAllowed({"ecm-user"})
@@ -38,7 +45,9 @@ public class StorageController {
     private final NodeManager nodeManager;
 
     private final NodeMapper nodeMapper;
-    
+
+    private final AuthenticationService authService;
+
     @Operation(summary = "Get the list of available buckets where at least one file is stored")
     @GetMapping(path = "/buckets")
     public List<Bucket> listBuckets() {
@@ -48,6 +57,8 @@ public class StorageController {
     @Operation(summary = "Create a new directory")
     @PostMapping(path = "/directory", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public NodeRepresentationResponse createDirectory(final DirectoryRepresentationRequest node) {
+        final String userId = authService.getUserId();
+        log.debug("userId : {}", userId);
         final NodeRepresentation createNodeData = nodeMapper.directoryRepresentationRequestToNodeRepresentation(node);
         final NodeRepresentation result = nodeManager.persistNode(createNodeData, null);
 
@@ -137,6 +148,18 @@ public class StorageController {
                 .header("Content-type", "application/octet-stream")
                 .header("Content-disposition", "attachment; filename=\"" + filename + "\"")
                 .body(resource);
+    }
+
+    @Operation(summary = "Delete the node and the associated contents (every versions)")
+    @DeleteMapping("/node/{nodeId}")
+    public void deleteNode(@PathVariable final String nodeId) {
+        final NodeRepresentation node = nodeService.findByNodeId(nodeId);
+
+        if (node == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found for nodeId " + nodeId);
+        }
+
+        nodeManager.deleteNode(nodeId);
     }
 
 }

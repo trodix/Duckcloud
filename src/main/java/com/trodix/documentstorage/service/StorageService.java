@@ -67,4 +67,13 @@ public class StorageService {
         return null;
     }
 
+    public void deleteFile(final String path, final String name) {
+        final RemoveObjectArgs args = RemoveObjectArgs.builder().bucket(ROOT_BUCKET).object(Path.of(path, name).toString()).build();
+        try {
+            minioClient.removeObject(args);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }

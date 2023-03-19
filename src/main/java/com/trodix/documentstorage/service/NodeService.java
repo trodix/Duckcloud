@@ -7,6 +7,7 @@ import com.trodix.documentstorage.model.NodeRepresentation;
 import com.trodix.documentstorage.persistance.dao.NodeDAO;
 import com.trodix.documentstorage.persistance.dao.StoredFileDAO;
 import com.trodix.documentstorage.persistance.entity.*;
+import com.trodix.documentstorage.security.services.AuthenticationService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -15,7 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.Serializable;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 @Service
@@ -38,6 +42,9 @@ public class NodeService {
     private final StoredFileDAO storedFileDAO;
 
     private final FileSearchService fileSearchService;
+
+    private final AuthenticationService authService;
+
 
     public Node nodeRepresentationToNode(final NodeRepresentation nodeRepresentation) throws IllegalArgumentException {
 
@@ -113,6 +120,22 @@ public class NodeService {
         node.setBucket(StorageService.ROOT_BUCKET);
 
         try {
+
+            // Set ownership
+            final String userId = authService.getUserId();
+            log.debug("Set creator userId {} for node {}", userId, node.getUuid());
+            final Property creatorProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_CREATOR), userId);
+            node.getProperties().add(creatorProperty);
+
+            final String userName = authService.getName();
+            log.debug("Set creator name {} for node {}", userName, node.getUuid());
+            final Property creatorNameProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_CREATOR_NAME), userName);
+            node.getProperties().add(creatorNameProperty);
+
+            // set created at
+            final Property createdAtProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_CREATED_AT), OffsetDateTime.now());
+            node.getProperties().add(createdAtProperty);
+
             final Property originalFileNameProperty =
                     propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_NAME), nodeRep.getProperties().get(ContentModel.PROP_NAME));
 
@@ -137,7 +160,7 @@ public class NodeService {
                 log.trace("Check path [{}] exists: {} - skipCheckExist: {}", tmpSegmentBuild, dirExists, skipCheckExist);
 
                 if (dirExists) {
-                    log.debug("Directory {} already exists, NOT recreating it again");
+                    log.debug("Directory {} already exists, NOT recreating it again", tmpSegmentBuild);
                 } else {
                     // create a directory
                     skipCheckExist = true;
@@ -214,11 +237,6 @@ public class NodeService {
 
     public String getOriginalFileName(final Node node) {
 
-        if (!node.getType().equals(typeService.stringToType(ContentModel.TYPE_CONTENT))) {
-            throw new IllegalArgumentException(
-                    "Node must be of type: " + ContentModel.TYPE_CONTENT + ". Actual type: " + typeService.typeToString(node.getType()));
-        }
-
         if (node.getProperties() != null) {
             final List<Property> res =
                     node.getProperties().stream().filter(i -> qnameService.qnameToString(i.getQname()).equals(ContentModel.PROP_NAME)).toList();
@@ -254,6 +272,10 @@ public class NodeService {
         return fileUuid;
     }
 
+    public List<String> findAllFileContentVersions(final String nodeId) {
+        return this.storedFileDAO.findAllFileContentVersions(nodeId);
+    }
+
     public boolean searchInFile(String nodeUuid, Serializable value) {
 
         log.debug("Searching for the term '{}' in {}", value, nodeUuid);
@@ -272,13 +294,11 @@ public class NodeService {
         return fileContent.toLowerCase().contains(value.toString().toLowerCase());
     }
 
-    public String extractFileContent(Node node) throws ParsingContentException {
+    public String extractFileContent(Node node, String fileUuid) throws ParsingContentException {
 
         if (!isTypeContent(node)) {
             throw new IllegalArgumentException("Node must be of type " + ContentModel.TYPE_CONTENT + " to extract file content");
         }
-
-        String fileUuid = findFileContentUuid(node.getUuid());
 
         if (fileUuid == null) {
             throw new IllegalStateException("File not found for nodeId " + node.getUuid());
@@ -321,8 +341,13 @@ public class NodeService {
 
         if (isTypeContent(node)) {
             try {
-                nodeIndex.setFilecontent(extractFileContent(node));
-            } catch (ParsingContentException e) {
+                String fileUuid = findFileContentUuid(node.getUuid());
+                if (fileUuid != null) {
+                    nodeIndex.setFilecontent(extractFileContent(node, fileUuid));
+                } else {
+                    throw new IllegalStateException("File not found for nodeId " + node.getUuid());
+                }
+            } catch (ParsingContentException | IllegalStateException e) {
                 log.error("Error while parsing file content. File content will not be indexed", e);
             }
         }
@@ -330,6 +355,27 @@ public class NodeService {
         nodeIndex.setProperties(properties);
 
         return nodeIndex;
+    }
+
+    public String getOwnerId(NodeRepresentation nodeRepresentation) {
+        return (String) nodeRepresentation.getProperties().get(ContentModel.PROP_CREATOR);
+    }
+
+    public String getOwnerName(NodeRepresentation nodeRepresentation) {
+        return (String) nodeRepresentation.getProperties().get(ContentModel.PROP_CREATOR_NAME);
+    }
+
+    public List<Node> findChildren(String nodeId) {
+        Node node = nodeDAO.findByUuId(nodeId);
+        return nodeDAO.findChildren(nodeId, getOriginalFileName(node));
+    }
+
+    public void deleteNode(Node node) {
+        nodeDAO.delete(node);
+    }
+
+    public Path getFullPath(Node node) {
+        return Paths.get(node.getDirectoryPath(), getOriginalFileName(node));
     }
 
 }

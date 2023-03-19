@@ -13,6 +13,8 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Repository
 @Transactional
 @AllArgsConstructor
@@ -63,11 +65,27 @@ public class StoredFileDAO {
                     INNER JOIN type t ON t.id = n.type_id
                     INNER JOIN qname q ON q.id = t.qname_id
                     INNER JOIN namespace n2 ON q.namespace_id = n2.id
-                    WHERE n.uuid = :node_uuid AND n2.name = :type_content_namespace AND q.name = :type_content_name
+                    WHERE n.uuid = :node_uuid
                     AND sf.version = :version
                     """;
 
         return DaoUtils.findOne(tpl.query(query, params, new StoredFileRowMapper())).orElse(null);
+    }
+
+    public List<String> findAllFileContentVersions(String nodeUuid) {
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("node_uuid", nodeUuid);
+
+        final String query = """
+                SELECT sf.uuid as sf_uuid FROM stored_file sf
+                    INNER JOIN node n ON n.id = sf.node_id
+                    INNER JOIN type t ON t.id = n.type_id
+                    INNER JOIN qname q ON q.id = t.qname_id
+                    INNER JOIN namespace n2 ON q.namespace_id = n2.id
+                    WHERE n.uuid = :node_uuid
+                    """;
+
+        return tpl.query(query, params, new StoredFileRowMapper());
     }
 
     public StoredFile save(StoredFile storedFile) {

@@ -10,7 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 @Service
 @AllArgsConstructor
@@ -22,6 +24,8 @@ public class NodeManager {
     private final NodeIndexerService nodeIndexerService;
 
     private final NodeDAO nodeDAO;
+
+    private final StorageService storageService;
 
     public NodeRepresentation persistNode(final NodeRepresentation nodeRep, @Nullable final byte[] file) {
         NodeRepresentation response = nodeService.persistNode(nodeRep, file);
@@ -59,5 +63,45 @@ public class NodeManager {
         //});
 
         return response;
+    }
+
+    public void deleteNode(final String nodeId) {
+        deleteNode(nodeId, true);
+    }
+
+    /**
+     * Delete a node.
+     *
+     * If the node is a type content, all related file contents versions will be deleted
+     * If the node is a type directory, this will also delete all children directories and node contents recursively
+     *
+     * @param nodeId
+     */
+    public void deleteNode(final String nodeId, boolean recursive) {
+        final Node nodeToDelete = nodeDAO.findByUuId(nodeId);
+
+        if (nodeToDelete != null) {
+
+            if (recursive) {
+                List<Node> children = nodeService.findChildren(nodeId);
+
+                for (Node child : children) {
+                    deleteNode(child.getUuid(), false);
+                }
+            }
+
+            final NodeIndex nodeIndex = nodeService.nodeToNodeIndex(nodeToDelete);
+            log.debug("Deleting node index for {} with path={}", nodeToDelete.getUuid(), nodeService.getFullPath(nodeToDelete));
+            nodeIndexerService.deleteNodeIndex(nodeIndex);
+
+            log.debug("Deleting node {} with path={}", nodeToDelete.getUuid(), nodeService.getFullPath(nodeToDelete));
+            nodeService.deleteNode(nodeToDelete);
+
+            for (String fileId : nodeService.findAllFileContentVersions(nodeId)) {
+                storageService.deleteFile(nodeToDelete.getDirectoryPath(), fileId);
+            }
+
+        }
+
     }
 }

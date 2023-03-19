@@ -101,6 +101,10 @@ public class NodeIndexerService {
 
     public String createNodeIndex(final NodeIndex node) {
 
+        if (node.getDbId() == null) {
+            throw new IllegalArgumentException("node.getDbId() was null");
+        }
+
         final IndexQuery indexQuery = new IndexQueryBuilder()
                 .withId(node.getDbId().toString())
                 .withObject(node).build();
@@ -117,9 +121,13 @@ public class NodeIndexerService {
 
     public void deleteNodeIndex(final NodeIndex node) {
 
+        if (node.getDbId() == null) {
+            throw new IllegalArgumentException("node.getDbId() was null");
+        }
+
         final IndexQuery indexQuery = new IndexQueryBuilder()
                 .withId(node.getDbId().toString())
-                .withObject(node).build();
+                .build();
 
         elasticsearchOperations.delete(indexQuery, IndexCoordinates.of(NODE_INDEX));
     }

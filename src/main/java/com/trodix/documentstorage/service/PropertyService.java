@@ -36,6 +36,10 @@ public class PropertyService extends QNameModelService {
         // Validate model
         final Model model = getPropertyTypeAssociation(qname);
 
+        if (model.getType() == null) {
+            throw new IllegalArgumentException("Can't set a property value for qname" + qnameService.qnameToString(qname) + " associated to a model with type null");
+        }
+
         final Property p = new Property();
         p.setQname(qname);
 

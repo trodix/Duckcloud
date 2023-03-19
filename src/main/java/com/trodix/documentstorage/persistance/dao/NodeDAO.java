@@ -1,10 +1,14 @@
 package com.trodix.documentstorage.persistance.dao;
 
-import java.util.List;
-
 import com.trodix.documentstorage.model.ContentModel;
-import com.trodix.documentstorage.persistance.mapper.StoredFileRowMapper;
-import com.trodix.documentstorage.persistance.utils.DaoUtils;
+import com.trodix.documentstorage.persistance.entity.Aspect;
+import com.trodix.documentstorage.persistance.entity.Node;
+import com.trodix.documentstorage.persistance.entity.Property;
+import com.trodix.documentstorage.persistance.entity.Type;
+import com.trodix.documentstorage.persistance.mapper.NodeDbIdRowMapper;
+import com.trodix.documentstorage.persistance.repository.NodeRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.RowCountCallbackHandler;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -12,12 +16,8 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import com.trodix.documentstorage.persistance.entity.Aspect;
-import com.trodix.documentstorage.persistance.entity.Node;
-import com.trodix.documentstorage.persistance.entity.Property;
-import com.trodix.documentstorage.persistance.entity.Type;
-import com.trodix.documentstorage.persistance.repository.NodeRepository;
-import lombok.AllArgsConstructor;
+
+import java.util.List;
 
 @Repository
 @Transactional
@@ -119,6 +119,45 @@ public class NodeDAO {
 
     public Node findByUuId(final String uuid) {
         return nodeRepository.findByUuid(uuid).orElse(null);
+    }
+
+    public List<Node> findChildren(final String uuid, String nodeName) {
+
+        Node node = nodeRepository.findByUuid(uuid).get();
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("child_name_pattern", node.getDirectoryPath() + node.getDirectoryPath() == "/" ? "" : "/" + nodeName + "%");
+
+        final String query = """
+                SELECT n.id as n_id, n.bucket as n_bucket, n.directory_path as n_directory_path, n.uuid as n_uuid, n.versions as n_versions, n.type_id as n_type_id
+                FROM node n
+                WHERE n.directory_path like :child_name_pattern
+                """;
+
+        List<Long> listNodeDbIds = tpl.query(query, params, new NodeDbIdRowMapper());
+        return nodeRepository.findAllById(listNodeDbIds);
+    }
+
+    @Transactional(rollbackFor = DataAccessException.class)
+    public void delete(final Node nodeToDelete) throws IllegalArgumentException {
+
+        if (nodeToDelete == null) {
+            throw new IllegalArgumentException("Node must not be null");
+        }
+
+        final MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("node_dbid", nodeToDelete.getDbId());
+
+        final String queryDeleteAspectRelations = "DELETE FROM node_aspect na WHERE na.node_id = :node_dbid";
+        tpl.update(queryDeleteAspectRelations, params);
+
+        final String queryDeletePropertiesRelations = "DELETE FROM node_property np WHERE np.node_id = :node_dbid";
+        tpl.update(queryDeletePropertiesRelations, params);
+
+        final String queryDeleteStoredFileRelations = "DELETE FROM stored_file sf WHERE sf.node_id = :node_dbid";
+        tpl.update(queryDeleteStoredFileRelations, params);
+
+        final String queryDeleteNode = "DELETE FROM node n WHERE n.id = :node_dbid";
+        tpl.update(queryDeleteNode, params);
     }
 
     protected Node persistNodeAspects(final Node node) {
