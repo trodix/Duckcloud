@@ -118,6 +118,9 @@ public class NodeService {
         Node existingNode = nodeDAO.findByUuId(nodeRep.getUuid());
         Node node = nodeRepresentationToNode(nodeRep);
         node.setDbId(existingNode.getDbId());
+        addProperty(node, ContentModel.PROP_MODIFIED_BY_ID, authService.getUserId());
+        addProperty(node, ContentModel.PROP_MODIFIED_BY_NAME, authService.getName());
+        addProperty(node, ContentModel.PROP_MODIFIED_AT, OffsetDateTime.now());
 
         if (node == null) {
             throw new IllegalArgumentException("Node not found for id " + nodeRep.getUuid());
@@ -134,30 +137,23 @@ public class NodeService {
         // TODO support multiple buckets
         node.setBucket(StorageService.ROOT_BUCKET);
 
-        try {
+        final Map<String, Serializable> properties = new HashMap<>();
 
-            // Set ownership
-            final String userId = authService.getUserId();
-            log.debug("Set creator userId {} for node {}", userId, node.getUuid());
-            final Property creatorProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_CREATOR), userId);
-            node.getProperties().add(creatorProperty);
+        // Set ownership
+        final String userId = authService.getUserId();
+        log.debug("Set creator userId {} for node {}", userId, node.getUuid());
+        properties.put(ContentModel.PROP_CREATOR, userId);
 
-            final String userName = authService.getName();
-            log.debug("Set creator name {} for node {}", userName, node.getUuid());
-            final Property creatorNameProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_CREATOR_NAME), userName);
-            node.getProperties().add(creatorNameProperty);
+        final String userName = authService.getName();
+        log.debug("Set creator name {} for node {}", userName, node.getUuid());
+        properties.put(ContentModel.PROP_CREATOR_NAME, userName);
 
-            // set created at
-            final Property createdAtProperty = propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_CREATED_AT), OffsetDateTime.now());
-            node.getProperties().add(createdAtProperty);
+        // set created at
+        properties.put(ContentModel.PROP_CREATED_AT, OffsetDateTime.now());
 
-            final Property originalFileNameProperty =
-                    propertyService.createProperty(qnameService.stringToQName(ContentModel.PROP_NAME), nodeRep.getProperties().get(ContentModel.PROP_NAME));
+        properties.put(ContentModel.PROP_NAME, nodeRep.getProperties().get(ContentModel.PROP_NAME));
 
-            node.getProperties().add(originalFileNameProperty);
-        } catch (final ParseException e) {
-            log.error(e.getMessage(), e);
-        }
+        addProperties(node, properties);
 
         if (isTypeContent(node) && file != null) {
             // get directories or create them (recursively)
@@ -184,8 +180,8 @@ public class NodeService {
                         dirPath = "/";
                     }
                     String dirName = tmpSegmentBuild.substring(tmpSegmentBuild.lastIndexOf("/") + 1, tmpSegmentBuild.length());
-                    Map<String, Serializable> properties = new HashMap<>();
-                    properties.put(ContentModel.PROP_NAME, dirName);
+                    Map<String, Serializable> props = new HashMap<>();
+                    props.put(ContentModel.PROP_NAME, dirName);
 
                     NodeRepresentation nodeRepDir = new NodeRepresentation();
                     nodeRepDir.setUuid(UUID.randomUUID().toString());
@@ -193,7 +189,7 @@ public class NodeService {
                     nodeRepDir.setType(ContentModel.TYPE_DIRECTORY);
                     nodeRepDir.setVersions(1);
                     nodeRepDir.setAspects(Collections.emptyList());
-                    nodeRepDir.setProperties(properties);
+                    nodeRepDir.setProperties(props);
 
                     persistNode(nodeRepDir, null);
                     log.debug("New directory created at {} (dirName={}) for storing node {} at path {}", dirPath, dirName, node.getUuid(), node.getDirectoryPath());
@@ -213,6 +209,23 @@ public class NodeService {
         }
 
         return findByNodeId(node.getUuid());
+    }
+
+    public Node addProperties(Node node, Map<String, Serializable> properties) {
+        for (Map.Entry<String, Serializable> property : properties.entrySet()) {
+            addProperty(node, property.getKey(), property.getValue());
+        }
+        return node;
+    }
+
+    public Node addProperty(Node node, String propertyName, Serializable value) throws RuntimeException {
+        try {
+            final Property creatorProperty = propertyService.createProperty(qnameService.stringToQName(propertyName), value);
+            node.getProperties().add(creatorProperty);
+        } catch (Exception e) {
+            throw new RuntimeException("Error while setting the property: " + propertyName + "=" + value, e);
+        }
+        return node;
     }
 
     public StoredFile createContent(final NodeRepresentation nodeRep, final byte[] file) throws IllegalArgumentException {
@@ -243,6 +256,11 @@ public class NodeService {
 
         storedFile = storedFileDAO.save(storedFile);
         node.setVersions(storedFile.getVersion());
+
+        addProperty(node, ContentModel.PROP_MODIFIED_BY_ID, authService.getUserId());
+        addProperty(node, ContentModel.PROP_MODIFIED_BY_NAME, authService.getName());
+        addProperty(node, ContentModel.PROP_MODIFIED_AT, OffsetDateTime.now());
+
         nodeDAO.save(node);
 
         log.debug("Version {} created for file uuid {} related to node uuid {}", storedFile.getVersion(), storedFile.getUuid(), node.getUuid());

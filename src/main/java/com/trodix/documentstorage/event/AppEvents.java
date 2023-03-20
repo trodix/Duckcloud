@@ -52,7 +52,10 @@ public class AppEvents {
         final Model propCreatedAt = modelService.buildModel(ContentModel.PROP_CREATED_AT, PropertyType.DATE);
         modelList.add(propCreatedAt);
 
-        final Model propModifiedBy = modelService.buildModel(ContentModel.PROP_MODIFIED_BY, PropertyType.STRING);
+        final Model propModifier = modelService.buildModel(ContentModel.PROP_MODIFIED_BY_ID, PropertyType.STRING);
+        modelList.add(propModifier);
+
+        final Model propModifiedBy = modelService.buildModel(ContentModel.PROP_MODIFIED_BY_NAME, PropertyType.STRING);
         modelList.add(propModifiedBy);
 
         final Model propModifiedAt = modelService.buildModel(ContentModel.PROP_MODIFIED_AT, PropertyType.DATE);

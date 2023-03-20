@@ -13,7 +13,9 @@ public class ContentModel {
 
     public static final String PROP_CREATED_AT = getQNameString("created-at");
 
-    public static final String PROP_MODIFIED_BY = getQNameString("modified-by");
+    public static final String PROP_MODIFIED_BY_ID = getQNameString("modified-by-id");
+
+    public static final String PROP_MODIFIED_BY_NAME = getQNameString("modified-by-name");
 
     public static final String PROP_MODIFIED_AT = getQNameString("modified-at");
 
