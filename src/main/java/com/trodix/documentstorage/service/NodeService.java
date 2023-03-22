@@ -257,9 +257,9 @@ public class NodeService {
         storedFile = storedFileDAO.save(storedFile);
         node.setVersions(storedFile.getVersion());
 
-        addProperty(node, ContentModel.PROP_MODIFIED_BY_ID, authService.getUserId());
-        addProperty(node, ContentModel.PROP_MODIFIED_BY_NAME, authService.getName());
-        addProperty(node, ContentModel.PROP_MODIFIED_AT, OffsetDateTime.now());
+//        addProperty(node, ContentModel.PROP_MODIFIED_BY_ID, authService.getUserId());
+//        addProperty(node, ContentModel.PROP_MODIFIED_BY_NAME, authService.getName());
+//        addProperty(node, ContentModel.PROP_MODIFIED_AT, OffsetDateTime.now());
 
         nodeDAO.save(node);
 
